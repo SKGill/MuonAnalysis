@@ -269,7 +269,7 @@ if options.run_events:
 process.TFileService = cms.Service('TFileService', fileName=cms.string('resolution_ntuple.root'))
 
 # Slick way to attach a bunch of different alignment records.
-from JChaves.Cosmics.CMSSWTools import set_preferred_alca
+from MuonAnalysis.Cosmics.CMSSWTools import set_preferred_alca
 for i, (connect, rcds) in enumerate(options.extra_alca):
     set_preferred_alca(process, 'extraAlca%i' % i, connect, **rcds)
 
@@ -281,10 +281,10 @@ for x in dir(process):
             ea.timetype = cms.untracked.string('runnumber')
 
 # We're re-reconstructing, so we need these.
-process.load('Configuration.Geometry.GeometryIdeal_cff')
-process.load('Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff')
+process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Configuration.StandardSequences.MagneticField_38T_PostLS1_cff')
 process.load('TrackingTools.TransientTrack.TransientTrackBuilder_cfi')
-process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 process.GlobalTag.globaltag = options.global_tag
 
 if not options.pp_reco_mode:
@@ -302,6 +302,10 @@ if options.is_mc:
     process.load('Configuration.StandardSequences.RawToDigi_cff')
 else:
     process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
+
+# JMTBAD won't hit some things because we don't define the same-named sequences/paths but these things don't look needed here
+from SLHCUpgradeSimulations.Configuration.postLS1Customs import customisePostLS1
+process = customisePostLS1(process)
 
 if options.edm_output:
     process.out = cms.OutputModule('PoolOutputModule', fileName = cms.untracked.string('edm.root'))
