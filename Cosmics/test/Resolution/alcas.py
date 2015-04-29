@@ -14,4 +14,4 @@
 #GlobalTag = 'FT53_V21A_AN6::All', []
 #GlobalTag = 'COSMC_53_PEAC::All', []
 #GlobalTag = 'GR_R_53_V18B::All', []
-GlobalTag = 'GR_P_V49::All', []
+GlobalTag = 'GR_P_V49', []
