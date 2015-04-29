@@ -7,8 +7,8 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
-#include "MuonAnalysis/Cosmics/plugins/ComparisonHists.h"
-#include "MuonAnalysis/Cosmics/plugins/CosmicSplittingResolutionNtuple.h"
+#include "ComparisonHists.h"
+#include "CosmicSplittingResolutionNtuple.h"
 
 struct Loader {
   // This helper struct is used to determine the actual quantities to

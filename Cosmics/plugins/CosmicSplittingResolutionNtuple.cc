@@ -1,4 +1,4 @@
-#include "MuonAnalysis/Cosmics/plugins/CosmicSplittingResolutionNtuple.h"
+#include "CosmicSplittingResolutionNtuple.h"
 
 const char* track_nicks[n_tracks] = {
   "Global",

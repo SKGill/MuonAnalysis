@@ -36,7 +36,7 @@
 #include "Geometry/Records/interface/GlobalTrackingGeometryRecord.h"
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
-#include "MuonAnalysis/Cosmics/plugins/CosmicSplittingResolutionNtuple.h"
+#include "CosmicSplittingResolutionNtuple.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
@@ -104,9 +104,12 @@ TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, co
 
     // Find the closest simHit to the point we want to propagate to, and
     // save its position and momentum.
-    double min_mag2 = 1e99;
+    //double min_mag2 = 1e99;
     GlobalPoint vtx;
     GlobalVector mom;
+    /* 
+    //No trackPSimHit() member of TrackingParticle in CMSSW_7_3_2
+
     const std::vector<PSimHit>& simhits = cosmic_tp->trackPSimHit();
     for (std::vector<PSimHit>::const_iterator it = simhits.begin(), ite = simhits.end(); it != ite; ++it) {
       const PSimHit& hit = *it;
@@ -126,7 +129,7 @@ TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, co
 	min_mag2 = delta.mag2();
       }
     }
-
+    */
     if (out) *out << "making trajectory state with vtx " << vtx << ", momentum " << mom << ", charge " << cosmic_tp->charge() << "\n";
     
     // Propagate the momentum from the simHit's point as close to the
@@ -557,6 +560,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     const reco::TrackRef& tko = tracks[tk_tkonly][j];
     const reco::TrackRef& fms = tracks[tk_tpfms] [j];
     const reco::TrackRef& pmr = tracks[tk_picky] [j];
+    const reco::TrackRef& dyt = tracks[tk_dyt] [j];
 
     // TMR: use tracker-only if the chi^2,dof tail prob difference
     // between TPFMS and tracker-only is bigger than the cut value.
@@ -576,7 +580,8 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     nt->choice_sigsw[j] = remapMuonTrackType(sigsw.second);
 
     // Tune P (see MuonCocktails.h/cc).
-    reco::Muon::MuonTrackTypePair tunep = muon::tevOptimized(glb, tko, fms, pmr, tunep_pt_threshold, tunep_tune1, tunep_tune2, tunep_dptcut);
+    // Added dyt track ref to the function
+    reco::Muon::MuonTrackTypePair tunep = muon::tevOptimized(glb, tko, fms, pmr, dyt, tunep_pt_threshold, tunep_tune1, tunep_tune2, tunep_dptcut);
     tracks[tk_tunep][j] = tunep.first;
     nt->choice_tunep[j] = remapMuonTrackType(tunep.second);
   }

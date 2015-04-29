@@ -116,7 +116,8 @@ datasets_data = [
     #('SPRun2012B',  '/Cosmics/Run2012B-CosmicSP-22Jan2013-v1/RAW-RECO'),
     #('SPRun2012C', '/Cosmics/Run2012C-CosmicSP-22Jan2013-v1/RAW-RECO'),
     #('SPRun2012D',  '/Cosmics/Run2012D-CosmicSP-22Jan2013-v1/RAW-RECO'),
-    ('SPRun2012Com',  '/Cosmics/Commissioning12-CosmicSP-26Mar2013-v1/RAW-RECO'),
+    #('SPRun2012Com',  '/Cosmics/Commissioning12-CosmicSP-26Mar2013-v1/RAW-RECO'),
+    ('CRAFT2015',  '/Cosmics/Commissioning2015-CosmicSP-CosmicsSP_07Feb2015-v2/RAW-RECO'),
     ]
 
 datasets_mc = [
@@ -268,7 +269,7 @@ if options.run_events:
 process.TFileService = cms.Service('TFileService', fileName=cms.string('resolution_ntuple.root'))
 
 # Slick way to attach a bunch of different alignment records.
-from MuonAnalysis.Cosmics.CMSSWTools import set_preferred_alca
+from JChaves.Cosmics.CMSSWTools import set_preferred_alca
 for i, (connect, rcds) in enumerate(options.extra_alca):
     set_preferred_alca(process, 'extraAlca%i' % i, connect, **rcds)
 
