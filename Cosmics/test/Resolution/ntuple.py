@@ -367,6 +367,7 @@ if not options.pp_reco_mode:
         Smoother = cms.string('KFSmootherForMuonTrackLoader'),
         DoSmoothing = cms.bool(True),
         beamSpot = cms.InputTag('offlineBeamSpot'),
+        TTRHBuilder = cms.string('WithAngleAndTemplate'),
     )
 
 # Configure the right set of reconstruction paths.
