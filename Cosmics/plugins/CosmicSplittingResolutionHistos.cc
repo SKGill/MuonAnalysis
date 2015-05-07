@@ -9,6 +9,7 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "ComparisonHists.h"
 #include "CosmicSplittingResolutionNtuple.h"
+#include <ostream>
 
 struct Loader {
   // This helper struct is used to determine the actual quantities to
@@ -345,7 +346,7 @@ struct Bin {
     }
   }
 
-  bool accept(const CosmicSplittingResolutionNtuple* nt, ostream* debug=0) const {
+  bool accept(const CosmicSplittingResolutionNtuple* nt, std::ostream* debug=0) const {
     // Determine whether to keep this event based on our cuts. The
     // cuts are on the reference track quantities.
 

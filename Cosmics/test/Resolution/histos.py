@@ -46,7 +46,7 @@ parser.add_argument('+copy-selected-events', action='store_true',
                     help='Copy events passing the overall selection (in the good run list, numbers of track hits, etc.) to a new ntuple in the output file.')
 parser.add_argument('+min-pixel-layers', type=int, default=1,
                     help='Require MIN_PIXEL_LAYERS pixel layers on every track (except standalone). Default is %(default)s.')
-parser.add_argument('+min-strip-layers', type=int, default=8,
+parser.add_argument('+min-strip-layers', type=int, default=5,
                     help='Require MIN_STRIP_LAYERS strip layers on every track (except standalone). Default is %(default)s.')
 parser.add_argument('+max-dxy', type=float, default=100,
                     help='')
