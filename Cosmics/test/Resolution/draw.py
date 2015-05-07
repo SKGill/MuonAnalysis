@@ -103,6 +103,7 @@ class Drawer:
         ('qinvpt', 'upperR1lower', 'rms'):   'rms (q/p_{T} rel. residual)',
         ('qinvpt', 'upperPlower',  'rms'):   'rms (q/p_{T} pull)',
         ('qinvpt', 'upperR1lower', 'sigma'): 'Width of q/p_{T} rel. residual',
+        ('qinvpt', 'upperR1lower', 'mean'): 'Mean of q/p_{T} rel. residual',
         ('qinvpt', 'upperPlower',  'sigma'): 'Width of q/p_{T} pull',
         ('qinvpt', 'upperPlower',  'mean'):  'mean (q/p_{T} pull)',
         }
@@ -235,19 +236,23 @@ if __name__ == '__main__':
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_out')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'rms', 0, 0.2)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'rms', 0, 0.4)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_rms')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.12)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.42)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_sigma')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 2.0)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'mean', -0.15, 0.15)
+    drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
+    ps.save('res_mean')
+
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 5.0)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('pull_sigma')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'mean', -0.4, 1.4)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'mean', -3.4, 1.0)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('pull_mean')
 

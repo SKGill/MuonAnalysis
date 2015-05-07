@@ -55,6 +55,7 @@ track_type remapMuonTrackType(reco::Muon::MuonTrackType t) {
   case reco::Muon::CombinedTrack: return tk_global;
   case reco::Muon::TPFMS: return tk_tpfms;
   case reco::Muon::Picky: return tk_picky;
+  case reco::Muon::DYT: return tk_dyt;
   default:
     throw cms::Exception("remapMuonTrackType") << "t value of " << t << " unexpected in cocktail function.";
   }
