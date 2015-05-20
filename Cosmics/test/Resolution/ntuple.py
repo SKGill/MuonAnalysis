@@ -288,10 +288,10 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condD
 process.GlobalTag.globaltag = options.global_tag
 from CondCore.DBCommon.CondDBSetup_cfi import *
 #load the Global Position Rcd
-process.globalPosition = cms.ESSource("PoolDBESSource",
-                                      CondDBSetup,toGet = cms.VPSet(cms.PSet(record =cms.string('GlobalPositionRcd'),tag= cms.string('IdealGeometry'))),
-                                      connect = cms.string('frontier://FrontierProd/CMS_COND_31X_FROM21X'))
-process.es_prefer_GPRcd = cms.ESPrefer("PoolDBESSource","globalPosition")
+#process.globalPosition = cms.ESSource("PoolDBESSource",
+ #                                     CondDBSetup,toGet = cms.VPSet(cms.PSet(record =cms.string('GlobalPositionRcd'),tag= cms.string('IdealGeometry'))),
+  #                                    connect = cms.string('frontier://FrontierProd/CMS_COND_31X_FROM21X'))
+#process.es_prefer_GPRcd = cms.ESPrefer("PoolDBESSource","globalPosition")
 
 if not options.pp_reco_mode:
     process.load('Configuration.StandardSequences.ReconstructionCosmics_cff')

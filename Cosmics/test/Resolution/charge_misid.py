@@ -28,7 +28,7 @@ parser.add_argument('--plot-dir-tag',
                     help='Save plots in plots/cosmic_charge_misid/${PLOT_DIR_TAG}.')
 parser.add_argument('--min-pixel-layers', type=int, default=1,
                     help='Require MIN_PIXEL_LAYERS pixel layers on every track (except standalone). Default is %(default)s.')
-parser.add_argument('--min-strip-layers', type=int, default=8,
+parser.add_argument('--min-strip-layers', type=int, default=5,
                     help='Require MIN_STRIP_LAYERS strip layers on every track (except standalone). Default is %(default)s.')
 parser.add_argument('--min-muon-hits', type=int, default=0,
                     help='Require MIN_MUON_HITS muon hits on every track (except tracker-only). Default is %(default)s.')
@@ -66,7 +66,8 @@ ps.c.SetLogx()
 # list applied.
 f = ROOT.TFile(options.filename)
 t = f.Get(os.path.join(options.tree_dir, 't'))
-
+# Hardcoded tree
+t = f.Get('histos/events_used')
 # Apply a base selection: default is the same as for the resolution study.
 base_cut = make_cut_string(min_pixel_layers=options.min_pixel_layers, min_strip_layers=options.min_strip_layers, max_dxy=options.max_dxy, max_dz=options.max_dz, no_csc_allowed=True, min_muon_hits=options.min_muon_hits)
 

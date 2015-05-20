@@ -8,7 +8,12 @@ ROOT.gStyle.SetOptStat(111111)
 ROOT.gStyle.SetOptFit(1111)
 
 def fit_histo(h, hist_name, draw=False):
-    if 'P' in hist_name: # pull
+    if '_test' in hist_name:
+        #print hist_name
+        factor = 2.5 # mean +/- 1.5 * rms
+        hist_name = hist_name.replace('_test','')
+        #print hist_name,h
+    elif 'P' in hist_name: # pull
         factor = 3/(h.GetRMS() if h.GetRMS() > 0 else 1) # fix to mean +/- 3
     elif 'R' in hist_name or 'D' in hist_name:
         factor = 1.5 # mean +/- 1.5 * rms
@@ -65,6 +70,7 @@ class Drawer:
         'TPFMS',
         'TkOnly',
         'Picky',
+        'DYT',
         'TuneP'
         ]
 
@@ -73,6 +79,7 @@ class Drawer:
         'TkOnly': 'Tracker-only',
         'TPFMS': 'TPFMS',
         'Picky': 'Picky',
+        'DYT': 'DYT',
         'TuneP': 'Tune P',
         'StAlone': 'Standalone'
         }
@@ -82,6 +89,7 @@ class Drawer:
         'TkOnly': ROOT.kRed,
         'TPFMS':  ROOT.kGreen+1,
         'Picky':  ROOT.kOrange+7,
+        'DYT':    6,
         'TuneP':  ROOT.kBlack,
         'StAlone':ROOT.kMagenta,
         }
@@ -91,6 +99,7 @@ class Drawer:
         'TkOnly':  20,
         'TPFMS':   22,
         'Picky':   27,
+        'DYT':     30,
         'TuneP':   23,
         'StAlone': 26,
         }
@@ -100,6 +109,7 @@ class Drawer:
         }
 
     y_titles = {
+        ('qinvpt', 'upperR1lower', 'out'):   '# over and underflows (q/p_{T} rel. res.)',
         ('qinvpt', 'upperR1lower', 'rms'):   'rms (q/p_{T} rel. residual)',
         ('qinvpt', 'upperPlower',  'rms'):   'rms (q/p_{T} pull)',
         ('qinvpt', 'upperR1lower', 'sigma'): 'Width of q/p_{T} rel. residual',
@@ -140,7 +150,10 @@ class Drawer:
         hs = []
         for bin in make_bins(*bin_by):
             hist = self.get_histo(bin.name, track, quantity, hist_name)
+            if track == 'Global' and quantity == 'qinvpt' and hist_name == 'upperR1lower' and bin.name == 'pT350500':
+                hist_name = hist_name + '_test'            
             res = fit_histo(hist, hist_name, draw=True)
+            hist_name = hist_name.replace('_test','')
             hs.append((bin, hist, res))
         return hs
             
@@ -157,7 +170,10 @@ class Drawer:
             exh.append(upper - abscissa)
 
             h = self.get_histo(bin.name, track, quantity, hist_name)
+            if track == 'Global' and quantity == 'qinvpt' and hist_name == 'upperR1lower' and bin.name == 'pT350500':
+                hist_name = hist_name + '_test'            
             value, error = get_histo_stat(h, hist_name, stat)
+            hist_name = hist_name.replace('_test','')
             y.append(value)
             ey.append(error)
 
@@ -230,29 +246,29 @@ if __name__ == '__main__':
     ps.make_canvas((700,700))
     ps.c.SetLogx(1)
 
-    tracks = ['Global', 'TkOnly', 'TPFMS', 'Picky', 'TuneP']
+    tracks = ['Global', 'TkOnly', 'TPFMS', 'Picky', 'DYT', 'TuneP']
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'out', 0, 300)
-    drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'out', 0, 60)
+    drawer.draw_legend((0.61,0.70,0.91,0.91), tracks)
     ps.save('res_out')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'rms', 0, 0.4)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'rms', 0, 0.25)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_rms')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.42)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.25)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_sigma')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'mean', -0.15, 0.15)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'mean', -0.05, 0.15)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_mean')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 5.0)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 2.0)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('pull_sigma')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'mean', -3.4, 1.0)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'mean', -0.5, 1.0)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('pull_mean')
 
