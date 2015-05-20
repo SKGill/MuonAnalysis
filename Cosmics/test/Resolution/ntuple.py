@@ -286,12 +286,6 @@ process.load('Configuration.StandardSequences.MagneticField_38T_PostLS1_cff')
 process.load('TrackingTools.TransientTrack.TransientTrackBuilder_cfi')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 process.GlobalTag.globaltag = options.global_tag
-from CondCore.DBCommon.CondDBSetup_cfi import *
-#load the Global Position Rcd
-#process.globalPosition = cms.ESSource("PoolDBESSource",
- #                                     CondDBSetup,toGet = cms.VPSet(cms.PSet(record =cms.string('GlobalPositionRcd'),tag= cms.string('IdealGeometry'))),
-  #                                    connect = cms.string('frontier://FrontierProd/CMS_COND_31X_FROM21X'))
-#process.es_prefer_GPRcd = cms.ESPrefer("PoolDBESSource","globalPosition")
 
 if not options.pp_reco_mode:
     process.load('Configuration.StandardSequences.ReconstructionCosmics_cff')
@@ -557,7 +551,7 @@ for reco_kind in label_names.keys():
     # Even though we made refit modules for DYT, something is weird in
     # refitting it more than once -- to be investigated later -- so
     # don't bother with refits 2-4 in the composition.
-    refits *= reduce(lambda x,y: x*y, [compose_it(nick) for nick in tracks_to_refit if nick != 'DYT'])
+    refits *= reduce(lambda x,y: x*y, [compose_it(nick) for nick in tracks_to_refit])
 
     # Run just local cosmic reco and cosmic muon reco, then run our
     # refits.
@@ -580,7 +574,7 @@ for reco_kind in label_names.keys():
                                                global_map_label          = kind_tag('refitMapGlobal'),
                                                tpfms_map_label           = kind_tag('refitMapTPFMS'),
                                                picky_map_label           = kind_tag('refitMapPicky'),
-                                               dyt_map_label             = kind_tag('refitMapTPFMS'), # Don't use DYT for now. Just copy TPFMS to avoid changing the code.
+                                               dyt_map_label             = kind_tag('refitMapDYT'),
                                                trackeronly_map_label     = kind_tag('refitMapTkOnly'),
                                                tmr_cut                   = cms.double(4),
                                                tunep_pt_threshold        = cms.double(options.tunep_tune[0]),
@@ -652,6 +646,9 @@ if options.dumps and options.foo:
             'UTstmTPFMS1',
             'UTstmPicky1',
             'UTstmDYT1',
+            'UTstmDYT2',
+            'UTstmDYT3',
+            'UTstmDYT4',
             ])
     else:
         process.EventDump.track_labels = vinputtagize([
