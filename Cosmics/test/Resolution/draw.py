@@ -71,6 +71,7 @@ class Drawer:
         'TkOnly',
         'Picky',
         'DYT',
+        'OldTuneP',
         'TuneP'
         ]
 
@@ -81,6 +82,7 @@ class Drawer:
         'Picky': 'Picky',
         'DYT': 'DYT',
         'TuneP': 'Tune P',
+        'OldTuneP': 'Old Tune P',
         'StAlone': 'Standalone'
         }
     
@@ -91,6 +93,7 @@ class Drawer:
         'Picky':  ROOT.kOrange+7,
         'DYT':    6,
         'TuneP':  ROOT.kBlack,
+        'OldTuneP':  ROOT.kCyan,
         'StAlone':ROOT.kMagenta,
         }
 
@@ -101,6 +104,7 @@ class Drawer:
         'Picky':   27,
         'DYT':     30,
         'TuneP':   23,
+        'OldTuneP':   25,
         'StAlone': 26,
         }
 
@@ -230,6 +234,23 @@ if __name__ == '__main__':
     drawer.file.histos.Get('errors').Draw('hist text00')
     ps.save('histo_errors')
 
+    for x in ['pT010', 'pT1020', 'pT2030', 'pT3040', 'pT4050', 'pT5075', 'pT75100', 'pT100150', 'pT150200', 'pT200350', 'pT350500', 'pT5002000', 'pTall', 'pTabove500', 'pTabove750']:
+        y = drawer.file.histos.Get(x)
+        if y.Get('choice_tunep_upper').GetEntries() != y.Get('choice_tunep_upper').GetBinContent(2) or y.Get('choice_tunep_lower').GetEntries() != y.Get('choice_tunep_lower').GetBinContent(2):
+            for b,n in enumerate(['Global','TkOnly','TPFMS','Picky','DYT']):
+                y.Get('choice_tunep_upper').GetXaxis().SetBinLabel(b+1,n)
+            y.Get('choice_tunep_upper').Draw('hist text00')
+            y.Get('choice_tunep_lower').SetLineColor(ROOT.kRed)
+            y.Get('choice_tunep_lower').Draw('hist text00 sames')
+            ps.save('choice_tunep_'+x, log=True)
+        if y.Get('choice_tunep_old_upper').GetEntries() != y.Get('choice_tunep_old_upper').GetBinContent(2) or y.Get('choice_tunep_old_lower').GetEntries() != y.Get('choice_tunep_old_lower').GetBinContent(2):
+            for b,n in enumerate(['Global','TkOnly','TPFMS','Picky','DYT']):
+                y.Get('choice_tunep_old_upper').GetXaxis().SetBinLabel(b+1,n)
+            y.Get('choice_tunep_old_upper').Draw('hist text00')
+            y.Get('choice_tunep_old_lower').SetLineColor(ROOT.kRed)
+            y.Get('choice_tunep_old_lower').Draw('hist text00 sames')
+            ps.save('choice_tunep_old_'+x, log=True)
+
     for proj in ['xy', 'rz']:
         for which in ['upper', 'lower']:
             for end in ['inner', 'outer']:
@@ -246,7 +267,7 @@ if __name__ == '__main__':
     ps.make_canvas((700,700))
     ps.c.SetLogx(1)
 
-    tracks = ['Global', 'TkOnly', 'TPFMS', 'Picky', 'DYT', 'TuneP']
+    tracks = ['Global', 'TkOnly', 'TPFMS', 'Picky', 'DYT', 'OldTuneP', 'TuneP']
 
     curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'out', 0, 60)
     drawer.draw_legend((0.61,0.70,0.91,0.91), tracks)
@@ -256,19 +277,19 @@ if __name__ == '__main__':
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_rms')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.25)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.1)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_sigma')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'mean', -0.05, 0.15)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'mean', -0.02, 0.03)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_mean')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 2.0)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 1.4)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('pull_sigma')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'mean', -0.5, 1.0)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'mean', -0.6, 0.6)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('pull_mean')
 

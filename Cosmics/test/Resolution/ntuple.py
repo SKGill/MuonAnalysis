@@ -311,6 +311,53 @@ if options.edm_output:
     process.out = cms.OutputModule('PoolOutputModule', fileName = cms.untracked.string('edm.root'))
     process.outp = cms.EndPath(process.out)
 
+# Testing new alignment
+from CondCore.DBCommon.CondDBSetup_cfi import CondDBSetup
+
+process.trackerAlignment = cms.ESSource('PoolDBESSource',
+                                        CondDBSetup,
+                                        connect = cms.string('sqlite_file:sm1107_2.db'),
+                                        toGet = cms.VPSet(cms.PSet(record = cms.string('TrackerAlignmentRcd'),
+                                                                   tag = cms.string('Alignments')
+                                                                   ),
+                                                          )
+                                        )
+process.es_prefer_trackerAlignment = cms.ESPrefer('PoolDBESSource', 'trackerAlignment')
+
+process.trackerAlignmentErr = cms.ESSource('PoolDBESSource',
+                                        CondDBSetup,
+                                        connect = cms.string('sqlite_file:apes.db'),
+                                        toGet = cms.VPSet(cms.PSet(record = cms.string('TrackerAlignmentErrorExtendedRcd'),
+                                                                   tag = cms.string('testTagAPE')
+                                                                   ),
+                                                          )
+                                        )
+process.es_prefer_trackerAlignmentErr = cms.ESPrefer('PoolDBESSource', 'trackerAlignmentErr')
+
+process.trackerAlignmentDeforms = cms.ESSource('PoolDBESSource',
+                                        CondDBSetup,
+                                        connect = cms.string('sqlite_file:deformations.db'),
+                                        toGet = cms.VPSet(cms.PSet(record = cms.string('TrackerSurfaceDeformationRcd'),
+                                                                   tag = cms.string('Deformations')
+                                                                   ),
+                                                          )
+                                        )
+process.es_prefer_trackerAlignmentDeforms = cms.ESPrefer('PoolDBESSource', 'trackerAlignmentDeforms')
+
+process.stripConds = cms.ESSource('PoolDBESSource',
+                                  CondDBSetup,
+                                  connect = cms.string('frontier://FrontierPrep/CMS_CONDITIONS'),
+                                        toGet = cms.VPSet(cms.PSet(record = cms.string('SiPixelTemplateDBObjectRcd'),
+                                                                   tag = cms.string('SiPixelTemplateDBObject_38T_2015_v1')
+                                                                   ),
+                                                          cms.PSet(record = cms.string('SiPixelLorentzAngleRcd'),
+                                                                   tag = cms.string('SiPixelLorentzAngle_2015_v2')
+                                                                   ),
+                                                          )
+                                        )
+process.es_prefer_stripConds = cms.ESPrefer('PoolDBESSource', 'stripConds')
+
+
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 10000
 process.MessageLogger.suppressWarning.append('castorDigis')

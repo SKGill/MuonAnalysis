@@ -205,6 +205,10 @@ struct Bin {
   TH1F* h_ref_phi;
   TH1F* h_ref_dxy;
   TH1F* h_ref_dz;
+  TH1F* h_choice_tunep_upper;
+  TH1F* h_choice_tunep_lower;
+  TH1F* h_choice_tunep_old_upper;
+  TH1F* h_choice_tunep_old_lower;
 
   // Keep track of how many events seen per run, to be put in a
   // histogram later.
@@ -297,12 +301,20 @@ struct Bin {
       h_ref_phi = bindir.make<TH1F>("ref_phi", "", 200/nbins_scale, -3.15, 3.15);
       h_ref_dxy = bindir.make<TH1F>("ref_dxy", "", 200/nbins_scale, -50, 50);
       h_ref_dz  = bindir.make<TH1F>("ref_dz",  "", 200/nbins_scale, -80, 80);
+      h_choice_tunep_upper  = bindir.make<TH1F>("choice_tunep_upper",  "", 5, 1, 6);
+      h_choice_tunep_lower  = bindir.make<TH1F>("choice_tunep_lower",  "", 5, 1, 6);
+      h_choice_tunep_old_upper  = bindir.make<TH1F>("choice_tunep_old_upper",  "", 5, 1, 6);
+      h_choice_tunep_old_lower  = bindir.make<TH1F>("choice_tunep_old_lower",  "", 5, 1, 6);
       h_ref_p  ->Sumw2();
       h_ref_pt ->Sumw2();
       h_ref_eta->Sumw2();
       h_ref_phi->Sumw2();
       h_ref_dxy->Sumw2();
       h_ref_dz ->Sumw2();
+      h_choice_tunep_upper ->Sumw2();
+      h_choice_tunep_lower ->Sumw2();
+      h_choice_tunep_old_upper ->Sumw2();
+      h_choice_tunep_old_lower ->Sumw2();
     }
     else
       h_ref_p_unweighted = h_ref_p = h_ref_pt = h_ref_eta = h_ref_phi = h_ref_dxy = h_ref_dz = 0;
@@ -445,6 +457,11 @@ struct Bin {
       h_ref_phi->Fill(nt->ref_phi, w);
       h_ref_dxy->Fill(nt->ref_dxy, w);
       h_ref_dz->Fill(nt->ref_dz, w);
+
+      h_choice_tunep_upper->Fill(nt->choice_tunep[0], w);
+      h_choice_tunep_lower->Fill(nt->choice_tunep[1], w);
+      h_choice_tunep_old_upper->Fill(nt->choice_tunep_old[0], w);
+      h_choice_tunep_old_lower->Fill(nt->choice_tunep_old[1], w);      
     }
 
     for (int j = 0; j < 2; ++j) {

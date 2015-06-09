@@ -10,6 +10,7 @@ const char* track_nicks[n_tracks] = {
   "TMR",
   "SigSw",
   "TuneP",
+  "OldTuneP",
   "StaGlb",
   "StaTko"
 };
@@ -110,6 +111,7 @@ void write_to_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   branch_it(tree, "choice_tmr", nt->choice_tmr, "choice_tmr[2]/s");
   branch_it(tree, "choice_sigsw",  nt->choice_sigsw,  "choice_sigsw[2]/s");
   branch_it(tree, "choice_tunep", nt->choice_tunep, "choice_tunep[2]/s");
+  branch_it(tree, "choice_tunep_old", nt->choice_tunep_old, "choice_tunep_old[2]/s");
   branch_it(tree, "tt25", &nt->tt25, "tt25/O");
   branch_it(tree, "bzat0", &nt->bzat0, "bzat0/F");
   branch_it(tree, "peak_mode", &nt->peak_mode, "peak_mode/O");
@@ -205,6 +207,7 @@ void read_from_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   tree->SetBranchAddress("choice_tmr", nt->choice_tmr);
   tree->SetBranchAddress("choice_sigsw", nt->choice_sigsw);
   tree->SetBranchAddress("choice_tunep", nt->choice_tunep);
+  tree->SetBranchAddress("choice_tunep_old", nt->choice_tunep_old);
   tree->SetBranchAddress("tt25", &nt->tt25);
   tree->SetBranchAddress("bzat0", &nt->bzat0);
   tree->SetBranchAddress("peak_mode", &nt->peak_mode);

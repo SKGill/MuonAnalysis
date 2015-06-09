@@ -61,6 +61,93 @@ track_type remapMuonTrackType(reco::Muon::MuonTrackType t) {
   }
 }
 
+
+reco::Muon::MuonTrackTypePair tevOptimized_old(const reco::TrackRef& combinedTrack,
+						  const reco::TrackRef& trackerTrack,
+						  const reco::TrackRef& tpfmsTrack,
+						  const reco::TrackRef& pickyTrack,
+						  const double ptThreshold,
+						  const double tune1,
+						  const double tune2,
+						  double dptcut) {
+
+  // Array for convenience below.
+  const reco::Muon::MuonTrackTypePair refit[4] = { 
+    make_pair(trackerTrack, reco::Muon::InnerTrack), 
+    make_pair(combinedTrack,reco::Muon::CombinedTrack),
+    make_pair(tpfmsTrack,   reco::Muon::TPFMS),
+    make_pair(pickyTrack,   reco::Muon::Picky)
+  }; 
+  
+  // Calculate the log(tail probabilities). If there's a problem,
+  // signify this with prob == 0. The current problems recognized are:
+  // the track being not available, whether the (re)fit failed or it's
+  // just not in the event, or if the (re)fit ended up with no valid
+  // hits.
+  double prob[4] = {0.,0.,0.,0.};
+  bool valid[4] = {0,0,0,0};
+
+  double dptmin = 1.;
+
+  if (dptcut>0) {  
+    for (unsigned int i = 0; i < 4; ++i)
+      if (refit[i].first.isNonnull())
+        if (refit[i].first->ptError()/refit[i].first->pt()<dptmin) dptmin = refit[i].first->ptError()/refit[i].first->pt();
+  
+    if (dptmin>dptcut) dptcut = dptmin+0.15;
+  }
+
+  for (unsigned int i = 0; i < 4; ++i) 
+    if (refit[i].first.isNonnull()){ 
+      valid[i] = true;
+      if (refit[i].first->numberOfValidHits() && (refit[i].first->ptError()/refit[i].first->pt()<dptcut || dptcut<0)) 
+	prob[i] = muon::trackProbability(refit[i].first); 
+    }
+
+  
+  // Start with picky.
+  int chosen = 3;
+  
+  // If there's a problem with picky, make the default one of the
+  // other tracks. Try TPFMS first, then global, then tracker-only.
+  if (prob[3] == 0.) { 
+
+    // split so that passing dptcut<0 recreates EXACTLY the old tuneP behavior
+    if (dptcut>0) {
+      if      (prob[0] > 0.) chosen = 0;
+      else if (prob[2] > 0.) chosen = 2;
+      else if (prob[1] > 0.) chosen = 1;
+    } else {
+      if      (prob[2] > 0.) chosen = 2;
+      else if (prob[1] > 0.) chosen = 1;
+      else if (prob[0] > 0.) chosen = 0;
+    }
+  } 
+  
+  // Now the algorithm: switch from picky to tracker-only if the
+  // difference, log(tail prob(picky)) - log(tail prob(tracker-only))
+  // is greater than a tuned value. Then compare the
+  // so-picked track to TPFMS in the same manner using another tuned
+  // value.
+  if (prob[0] > 0. && prob[3] > 0. && (prob[3] - prob[0]) > tune1)
+    chosen = 0;
+  if (prob[2] > 0. && (prob[chosen] - prob[2]) > tune2)
+    chosen = 2;
+
+  // Sanity checks 
+  if (chosen == 3 && !valid[3] ) chosen = 2;
+  if (chosen == 2 && !valid[2] ) chosen = 1;
+  if (chosen == 1 && !valid[1] ) chosen = 0; 
+
+  // Done. If pT of the chosen track (or pT of the tracker track) is below the threshold value, return the tracker track.
+  if (valid[chosen] && refit[chosen].first->pt() < ptThreshold && prob[0] > 0.) return make_pair(trackerTrack,reco::Muon::InnerTrack);    
+  if (trackerTrack->pt() < ptThreshold && prob[0] > 0.) return make_pair(trackerTrack,reco::Muon::InnerTrack);  
+  
+  // Return the chosen track (which can be the global track in
+  // very rare cases).
+  return refit[chosen];
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // The cosmic MC values are not given at the PCA to the IP, but rather
@@ -472,6 +559,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     { reco::TrackRef(), reco::TrackRef() }, // Ditto for TMR tracks.
     { reco::TrackRef(), reco::TrackRef() }, // Ditto for SS tracks.
     { reco::TrackRef(), reco::TrackRef() }, // Ditto for TuneP tracks.
+    { reco::TrackRef(), reco::TrackRef() }, // Ditto for old TuneP tracks.
     { global_muons[which_upper]->globalTrack(), global_muons[!which_upper]->globalTrack() }, // Duplicate the global track here for the one where we propagate to the stand-alone track's position.
     { global_muons[which_upper]->innerTrack(), global_muons[!which_upper]->innerTrack() }    // Ditto for the tracker track.
   };
@@ -583,8 +671,11 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     // Tune P (see MuonCocktails.h/cc).
     // Added dyt track ref to the function
     reco::Muon::MuonTrackTypePair tunep = muon::tevOptimized(glb, tko, fms, pmr, dyt, tunep_pt_threshold, tunep_tune1, tunep_tune2, tunep_dptcut);
+    reco::Muon::MuonTrackTypePair tunep_old = tevOptimized_old(glb, tko, fms, pmr, tunep_pt_threshold, tunep_tune1, tunep_tune2, tunep_dptcut);
     tracks[tk_tunep][j] = tunep.first;
     nt->choice_tunep[j] = remapMuonTrackType(tunep.second);
+    tracks[tk_tunep_old][j] = tunep_old.first;
+    nt->choice_tunep_old[j] = remapMuonTrackType(tunep_old.second);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -803,6 +894,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   }
 
   edm::LogInfo("CosmicSplittingResolution") << "Cocktail info:\n" << out.str() << "choice_tunep[0] = " << track_nicks[nt->choice_tunep[0]] << "  [1] = " << track_nicks[nt->choice_tunep[1]];
+  edm::LogInfo("CosmicSplittingResolution") << "Cocktail info:\n" << out.str() << "choice_tunep_old[0] = " << track_nicks[nt->choice_tunep_old[0]] << "  [1] = " << track_nicks[nt->choice_tunep_old[1]];
 
   if (is_mc) {
     // Get the status-1 generated muon (the one propagated already to
