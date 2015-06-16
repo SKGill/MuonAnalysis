@@ -236,19 +236,31 @@ if __name__ == '__main__':
 
     for x in ['pT010', 'pT1020', 'pT2030', 'pT3040', 'pT4050', 'pT5075', 'pT75100', 'pT100150', 'pT150200', 'pT200350', 'pT350500', 'pT5002000', 'pTall', 'pTabove500', 'pTabove750']:
         y = drawer.file.histos.Get(x)
-        if y.Get('choice_tunep_upper').GetEntries() != y.Get('choice_tunep_upper').GetBinContent(2) or y.Get('choice_tunep_lower').GetEntries() != y.Get('choice_tunep_lower').GetBinContent(2):
+        if y.Get('choice_tunep_upper').GetEntries() != y.Get('choice_tunep_upper').GetBinContent(2) and y.Get('choice_tunep_lower').GetEntries() != y.Get('choice_tunep_lower').GetBinContent(2):
             for b,n in enumerate(['Global','TkOnly','TPFMS','Picky','DYT']):
                 y.Get('choice_tunep_upper').GetXaxis().SetBinLabel(b+1,n)
+            ROOT.gStyle.SetOptStat(0)
             y.Get('choice_tunep_upper').Draw('hist text00')
             y.Get('choice_tunep_lower').SetLineColor(ROOT.kRed)
             y.Get('choice_tunep_lower').Draw('hist text00 sames')
+            leg = ROOT.TLegend( 0.78, 0.50, 0.98, 0.65 ) ; 
+            leg.AddEntry( y.Get('choice_tunep_upper'), "upper" )
+            leg.AddEntry( y.Get('choice_tunep_lower'), "lower" )
+            if x == 'pT150200':
+                leg.Draw()
             ps.save('choice_tunep_'+x, log=True)
         if y.Get('choice_tunep_old_upper').GetEntries() != y.Get('choice_tunep_old_upper').GetBinContent(2) or y.Get('choice_tunep_old_lower').GetEntries() != y.Get('choice_tunep_old_lower').GetBinContent(2):
             for b,n in enumerate(['Global','TkOnly','TPFMS','Picky','DYT']):
                 y.Get('choice_tunep_old_upper').GetXaxis().SetBinLabel(b+1,n)
+            ROOT.gStyle.SetOptStat(0)
             y.Get('choice_tunep_old_upper').Draw('hist text00')
             y.Get('choice_tunep_old_lower').SetLineColor(ROOT.kRed)
             y.Get('choice_tunep_old_lower').Draw('hist text00 sames')
+            leg = ROOT.TLegend( 0.78, 0.50, 0.98, 0.65 ) ; 
+            leg.AddEntry( y.Get('choice_tunep_old_upper'), "upper" )
+            leg.AddEntry( y.Get('choice_tunep_old_lower'), "lower" )
+            if x == 'pT150200':
+                leg.Draw()
             ps.save('choice_tunep_old_'+x, log=True)
 
     for proj in ['xy', 'rz']:
@@ -273,11 +285,11 @@ if __name__ == '__main__':
     drawer.draw_legend((0.61,0.70,0.91,0.91), tracks)
     ps.save('res_out')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'rms', 0, 0.25)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'rms', 0, 0.2)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_rms')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.1)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.15)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_sigma')
 
@@ -285,7 +297,7 @@ if __name__ == '__main__':
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_mean')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 1.4)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 1.8)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('pull_sigma')
 
