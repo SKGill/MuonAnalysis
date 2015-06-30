@@ -17,7 +17,7 @@ enum data_id_type { data, mc_10, mc_100, mc_500 };
 // tracks. This is for the comparison global vs. standalone or
 // tracker-only vs. standalone. (Therefore there are double the
 // statistics for this comparison: upper and lower pairs.)
-enum track_type { tk_global, tk_stalone, tk_tkonly, tk_tpfms, tk_picky, tk_dyt, tk_tmr, tk_sigsw, tk_tunep, tk_tunep_old, tk_staglb, tk_statko, n_tracks };
+enum track_type { tk_global, tk_stalone, tk_tkonly, tk_tpfms, tk_picky, tk_dyt, tk_tmr, tk_sigsw, tk_tunep, tk_tunep_old, tk_tuner_sigma, tk_tuner_prob, tk_tuner_sigma2, tk_staglb, tk_statko, n_tracks };
 enum track_pos { upper, lower, n_track_pos };
 
 extern const char* track_nicks[n_tracks];
@@ -133,6 +133,9 @@ struct CosmicSplittingResolutionNtuple {
   ushort choice_sigsw[n_track_pos];
   ushort choice_tunep[n_track_pos];
   ushort choice_tunep_old[n_track_pos];
+  ushort choice_tuner_sigma[n_track_pos];
+  ushort choice_tuner_prob[n_track_pos];
+  ushort choice_tuner_sigma2[n_track_pos];
 
   bool tt25;
 

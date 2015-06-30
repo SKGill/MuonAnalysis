@@ -313,7 +313,7 @@ if options.edm_output:
 
 # Testing new alignment
 from CondCore.DBCommon.CondDBSetup_cfi import CondDBSetup
-
+'''
 process.trackerAlignment = cms.ESSource('PoolDBESSource',
                                         CondDBSetup,
                                         connect = cms.string('sqlite_file:sm1107_2.db'),
@@ -356,7 +356,19 @@ process.stripConds = cms.ESSource('PoolDBESSource',
                                                           )
                                         )
 process.es_prefer_stripConds = cms.ESPrefer('PoolDBESSource', 'stripConds')
+'''
+# Set APEs
+process.setAPE = cms.ESSource("PoolDBESSource",CondDBSetup,
+                                        connect = cms.string('sqlite_file:startup-v1_DESRUN2_74_V4_ape-candidate2.db'),
+                                        timetype = cms.string("runnumber"),
+                                        toGet = cms.VPSet(cms.PSet(record = cms.string('TrackerAlignmentErrorExtendedRcd'),
+                                                                   tag = cms.string('testTagAPE')
+                                                                   ))
+                              )
 
+process.es_prefer_setAPE = cms.ESPrefer("PoolDBESSource", "setAPE")
+
+####
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 10000

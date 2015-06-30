@@ -209,6 +209,12 @@ struct Bin {
   TH1F* h_choice_tunep_lower;
   TH1F* h_choice_tunep_old_upper;
   TH1F* h_choice_tunep_old_lower;
+  TH1F* h_choice_tuner_sigma_upper;
+  TH1F* h_choice_tuner_sigma_lower;
+  TH1F* h_choice_tuner_prob_upper;
+  TH1F* h_choice_tuner_prob_lower;
+  TH1F* h_choice_tuner_sigma2_upper;
+  TH1F* h_choice_tuner_sigma2_lower;
 
   // Keep track of how many events seen per run, to be put in a
   // histogram later.
@@ -305,6 +311,12 @@ struct Bin {
       h_choice_tunep_lower  = bindir.make<TH1F>("choice_tunep_lower",  "", 5, 1, 6);
       h_choice_tunep_old_upper  = bindir.make<TH1F>("choice_tunep_old_upper",  "", 5, 1, 6);
       h_choice_tunep_old_lower  = bindir.make<TH1F>("choice_tunep_old_lower",  "", 5, 1, 6);
+      h_choice_tuner_sigma_upper  = bindir.make<TH1F>("choice_tuner_sigma_upper",  "", 5, 1, 6);
+      h_choice_tuner_sigma_lower  = bindir.make<TH1F>("choice_tuner_sigma_lower",  "", 5, 1, 6);
+      h_choice_tuner_prob_upper  = bindir.make<TH1F>("choice_tuner_prob_upper",  "", 5, 1, 6);
+      h_choice_tuner_prob_lower  = bindir.make<TH1F>("choice_tuner_prob_lower",  "", 5, 1, 6);
+      h_choice_tuner_sigma2_upper  = bindir.make<TH1F>("choice_tuner_sigma2_upper",  "", 5, 1, 6);
+      h_choice_tuner_sigma2_lower  = bindir.make<TH1F>("choice_tuner_sigma2_lower",  "", 5, 1, 6);
       h_ref_p  ->Sumw2();
       h_ref_pt ->Sumw2();
       h_ref_eta->Sumw2();
@@ -315,6 +327,12 @@ struct Bin {
       h_choice_tunep_lower ->Sumw2();
       h_choice_tunep_old_upper ->Sumw2();
       h_choice_tunep_old_lower ->Sumw2();
+      h_choice_tuner_sigma_upper ->Sumw2();
+      h_choice_tuner_sigma_lower ->Sumw2();
+      h_choice_tuner_prob_upper ->Sumw2();
+      h_choice_tuner_prob_lower ->Sumw2();
+      h_choice_tuner_sigma2_upper ->Sumw2();
+      h_choice_tuner_sigma2_lower ->Sumw2();
     }
     else
       h_ref_p_unweighted = h_ref_p = h_ref_pt = h_ref_eta = h_ref_phi = h_ref_dxy = h_ref_dz = 0;
@@ -461,7 +479,13 @@ struct Bin {
       h_choice_tunep_upper->Fill(nt->choice_tunep[0], w);
       h_choice_tunep_lower->Fill(nt->choice_tunep[1], w);
       h_choice_tunep_old_upper->Fill(nt->choice_tunep_old[0], w);
-      h_choice_tunep_old_lower->Fill(nt->choice_tunep_old[1], w);      
+      h_choice_tunep_old_lower->Fill(nt->choice_tunep_old[1], w);
+      h_choice_tuner_sigma_upper->Fill(nt->choice_tuner_sigma[0], w);
+      h_choice_tuner_sigma_lower->Fill(nt->choice_tuner_sigma[1], w);
+      h_choice_tuner_prob_upper->Fill(nt->choice_tuner_prob[0], w);
+      h_choice_tuner_prob_lower->Fill(nt->choice_tuner_prob[1], w);
+      h_choice_tuner_sigma2_upper->Fill(nt->choice_tuner_sigma2[0], w);
+      h_choice_tuner_sigma2_lower->Fill(nt->choice_tuner_sigma2[1], w);      
     }
 
     for (int j = 0; j < 2; ++j) {
