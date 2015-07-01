@@ -27,6 +27,18 @@ void dump_ref(std::ostream& out, const edm::Ref<T>& ref, const edm::Event* event
   out << " with index " << ref.index() << "\n";
 }
 
+template <typename T>
+void dump_handle(std::ostream& out, const edm::Handle<T>& h) {
+  out << "handle with product id " << h.id().id();
+  if (h.id().id() == 0) {
+    out << "\n";
+    return;
+  }
+
+  const edm::Provenance* prov = h.provenance();
+  out << ", branch " << prov->branchName() << " (id " << prov->branchID().id() << ")\n";
+}
+
 void dump_t2tmap(std::ostream& out, const reco::TrackToTrackMap& map, const edm::Event* event) {
   out << "map size: " << map.size() << "\n";
   int ipair = 0; // subtracting iterators below doesn't work for some reason
@@ -44,14 +56,18 @@ public:
 
 private:
   typedef std::vector<edm::Handle<reco::TrackToTrackMap> > map_vector;
-  reco::TrackToTrackMap* compose(const map_vector&);
+  reco::TrackToTrackMap* compose(edm::Event&, edm::Handle<reco::TrackCollection>& first_tracks, edm::Handle<reco::TrackCollection>& last_tracks, const map_vector&);
   virtual void produce(edm::Event&, const edm::EventSetup&);
 
+  const bool debug;
   std::vector<std::string> new_map_names;
+  std::vector<edm::InputTag> first_track_tags;
   std::vector<std::vector<edm::InputTag> > map_tags;
 };
 
 T2TMapComposer::T2TMapComposer(const edm::ParameterSet& cfg)
+  : debug(true),
+    first_track_tags(cfg.getParameter<std::vector<edm::InputTag> >("first_track_tags"))
 {
   if (cfg.existsAs<std::vector<std::string> >("new_map_names")) {
     new_map_names = cfg.getParameter<std::vector<std::string> >("new_map_names");
@@ -67,38 +83,67 @@ T2TMapComposer::T2TMapComposer(const edm::ParameterSet& cfg)
   }
 }
 
-reco::TrackToTrackMap* T2TMapComposer::compose(const map_vector& maps) {
-  reco::TrackToTrackMap* t2tmap = new reco::TrackToTrackMap;
+reco::TrackToTrackMap* T2TMapComposer::compose(edm::Event& event, edm::Handle<reco::TrackCollection>& first_tracks, edm::Handle<reco::TrackCollection>& last_tracks, const map_vector& maps) {
+  std::ostringstream out;
+  reco::TrackToTrackMap* t2tmap = new reco::TrackToTrackMap(first_tracks, last_tracks);
+
+  if (debug) {
+    out << "first tracks handle: ";
+    dump_handle(out, first_tracks);
+    out << "last  tracks handle: ";
+    dump_handle(out, last_tracks);
+  }
 
   // For each key->value in the first map, follow the mappings through
   // to the end of the maps vector and store key->ultimate_value in
   // the output map.
   for (reco::TrackToTrackMap::const_iterator orig = maps.at(0)->begin(); orig != maps.at(0)->end(); ++orig) {
+    if (debug) out << "orig key pt " << orig->key->pt() << " eta " << orig->key->eta() << " phi " << orig->key->phi() << "\n";
     reco::TrackRef curr = orig->val;
+    if (debug) out << "first curr pt " << curr->pt() << " eta " << curr->eta() << " phi " << curr->phi() << "\n";
+
     for (map_vector::const_iterator map = maps.begin() + 1; map != maps.end(); ++map) {
       reco::TrackToTrackMap::const_iterator it = (*map)->find(curr);
       if (it == (*map)->end()) {
 	curr = reco::TrackRef();
 	break;
       }
-      else
+      else {
 	curr = it->val;
+        if (debug) out << "curr now pt " << curr->pt() << " eta " << curr->eta() << " phi " << curr->phi() << "\n";
+      }
     }
 
     // If the link is broken somewhere, don't store anything for this
     // key.
-    if (!curr.isNull())
+    if (!curr.isNull()) {
+      if (debug) {
+        out << "before insert:\n"
+                  << "orig key pt " << orig->key->pt() << " eta " << orig->key->eta() << " phi " << orig->key->phi() << "\n";
+        dump_ref(out, orig->key, &event);
+        out << "curr final pt " << curr->pt() << " eta " << curr->eta() << " phi " << curr->phi() << "\n";
+        dump_ref(out, curr, &event);
+      }
+
       t2tmap->insert(orig->key, curr);
+    }
   }
+
+  if (debug) edm::LogInfo("T2TMapComposer") << out.str();
 
   return t2tmap;
 }
 
 void T2TMapComposer::produce(edm::Event& event, const edm::EventSetup&) {
-  static const bool debug = false;
   std::ostringstream out;
 
   for (size_t i = 0; i < map_tags.size(); ++i) {
+    // Need refs to first and last track collections with changes to
+    // AssociationMap in 750.
+    edm::Handle<reco::TrackCollection> first_tracks, last_tracks;
+    event.getByLabel(first_track_tags[i], first_tracks);
+    event.getByLabel(map_tags[i].back(), last_tracks);
+
     // Get all the maps we're to compose and put them in the vector in order.
     map_vector maps(map_tags[i].size());
     int itag = 0;
@@ -111,15 +156,17 @@ void T2TMapComposer::produce(edm::Event& event, const edm::EventSetup&) {
       }
     }
 
-    std::auto_ptr<reco::TrackToTrackMap> t2tmap(compose(maps));
-    event.put(t2tmap, new_map_names[i]);
+    std::auto_ptr<reco::TrackToTrackMap> t2tmap(compose(event, first_tracks, last_tracks, maps));
 
     if (debug) {
       out << "composed map with name '" << new_map_names[i] << "':\n";
       dump_t2tmap(out, *t2tmap, &event);
-      edm::LogInfo("T2TMapComposer") << out.str();
     }
+
+    event.put(t2tmap, new_map_names[i]);
   }
+
+  edm::LogInfo("T2TMapComposer") << out.str();
 }
 
 DEFINE_FWK_MODULE(T2TMapComposer);

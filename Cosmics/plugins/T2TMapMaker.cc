@@ -42,7 +42,7 @@ T2TMapMaker::T2TMapMaker(const edm::ParameterSet& cfg)
 }
 
 void T2TMapMaker::produce(edm::Event& event, const edm::EventSetup&) {
-  static const bool debug = false;
+  static const bool debug = true;
   std::ostringstream out;
 
   edm::Handle<reco::TrackCollection> src_tracks;
@@ -75,7 +75,7 @@ void T2TMapMaker::produce(edm::Event& event, const edm::EventSetup&) {
   memset(i_used, 0, sizeof(bool)*ni);
   memset(j_used, 0, sizeof(bool)*nj);
 
-  std::auto_ptr<reco::TrackToTrackMap> t2tmap(new reco::TrackToTrackMap);
+  std::auto_ptr<reco::TrackToTrackMap> t2tmap(new reco::TrackToTrackMap(src_tracks, dst_tracks));
 
   for (std::vector<entry>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
     if (!i_used[it->i] && !j_used[it->j]) {

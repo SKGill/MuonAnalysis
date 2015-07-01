@@ -586,6 +586,11 @@ for reco_kind in label_names.keys():
     refits *= refit_it(muon_refitter.clone(RefitIndex=cms.vint32(4)), 'DYT',    tev_refit_start_label)
     refits *= refit_it(track_refitter,                                'TkOnly', split_track_label, True)
 
+    # AssociationMaps made later in T2TMapComposer need to know where
+    # they start from. This list should be kept up-to-date with the
+    # previous block.
+    refit_starts = [muon_track_label, tev_refit_start_label, tev_refit_start_label, tev_refit_start_label, split_track_label]
+
     # If we're in split-tracks mode, refit the one unsplit track as
     # well. (In non-split-tracks mode, we'll use as reference tracks
     # the already-refit tracker tracks above.)
@@ -596,13 +601,14 @@ for reco_kind in label_names.keys():
     # ultimate refit collections. Make such maps by composing all the
     # intermediate ones.
 
-    def compose_it(name):
+    def compose_it(name, first_track_tag):
         if name != 'TkOnly':
             base_name = 'stm%s%i'
         else:
             base_name = 'stmMatch%s%i'
 
         comp_obj = cms.EDProducer('T2TMapComposer',
+            first_track_tags = cms.VInputTag(first_track_tag),
             map_tags = cms.VInputTag(*[kind_tag(base_name % (name, i+1)) for i in xrange(options.num_refits)])
         )
 
@@ -611,10 +617,7 @@ for reco_kind in label_names.keys():
         setattr(process, tag.moduleLabel, comp_obj)
         return comp_obj
 
-    # Even though we made refit modules for DYT, something is weird in
-    # refitting it more than once -- to be investigated later -- so
-    # don't bother with refits 2-4 in the composition.
-    refits *= reduce(lambda x,y: x*y, [compose_it(nick) for nick in tracks_to_refit])
+    refits *= reduce(lambda x,y: x*y, [compose_it(nick, refit_start) for nick, refit_start in zip(tracks_to_refit, refit_starts)])
 
     # Run just local cosmic reco and cosmic muon reco, then run our
     # refits.
