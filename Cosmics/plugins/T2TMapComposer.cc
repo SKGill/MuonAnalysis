@@ -11,7 +11,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-// JMTBAD move these two to a library.
+// JMTBAD move these three to a library.
 
 template <typename T>
 void dump_ref(std::ostream& out, const edm::Ref<T>& ref, const edm::Event* event=0) {
@@ -62,12 +62,14 @@ private:
   const bool debug;
   std::vector<std::string> new_map_names;
   std::vector<edm::InputTag> first_track_tags;
+  std::vector<edm::InputTag> last_track_tags;
   std::vector<std::vector<edm::InputTag> > map_tags;
 };
 
 T2TMapComposer::T2TMapComposer(const edm::ParameterSet& cfg)
   : debug(true),
-    first_track_tags(cfg.getParameter<std::vector<edm::InputTag> >("first_track_tags"))
+    first_track_tags(cfg.getParameter<std::vector<edm::InputTag> >("first_track_tags")),
+    last_track_tags(cfg.getParameter<std::vector<edm::InputTag> >("last_track_tags"))
 {
   if (cfg.existsAs<std::vector<std::string> >("new_map_names")) {
     new_map_names = cfg.getParameter<std::vector<std::string> >("new_map_names");
@@ -142,7 +144,7 @@ void T2TMapComposer::produce(edm::Event& event, const edm::EventSetup&) {
     // AssociationMap in 750.
     edm::Handle<reco::TrackCollection> first_tracks, last_tracks;
     event.getByLabel(first_track_tags[i], first_tracks);
-    event.getByLabel(map_tags[i].back(), last_tracks);
+    event.getByLabel(last_track_tags [i], last_tracks);
 
     // Get all the maps we're to compose and put them in the vector in order.
     map_vector maps(map_tags[i].size());

@@ -532,10 +532,18 @@ for reco_kind in label_names.keys():
     # tracks). This handles making the N modules, setting the input of
     # the next module to the current module in the chain.
 
+    refits = []
+    refit_starts = {}
+    refit_ends = {}
     map_tags = []
 
     def refit_it(module, name, first_from, is_tracker_only=False):
-        refits = []
+        # JMTBAD yuck
+        global refits
+        global refit_starts
+        global refit_ends
+        global map_tags
+
         for i in xrange(options.num_refits):
             if i == 0:
                 tag_src = first_from
@@ -569,46 +577,47 @@ for reco_kind in label_names.keys():
                 setattr(process, label, match_obj)
                 refits.append(match_obj)
 
-            global map_tags
-            map_tags.append(match_tag)
+            # AssociationMaps made later in T2TMapComposer need to
+            # know where they start from.
+            if i == 0:
+                refit_starts[name] = tag_src
+            elif i == options.num_refits - 1:
+                refit_ends[name] = tag_dst
 
-        # Return the product of all the modules created.
-        return reduce(lambda x,y: x*y, refits)
+            map_tags.append(match_tag)
 
     # Make a path object stub that we'll multiply with all the refits,
     # and then do so. Usually, Global refits start from the
     # globalCosmic(Split)Muons collection, TPFMS refits start from the
     # last Global refit collection, and TkOnly refits start from
     # splittedTracksP5 collection.
-    refits  = refit_it(muon_refitter,                                 'Global', muon_track_label)
-    refits *= refit_it(muon_refitter.clone(RefitIndex=cms.vint32(2)), 'TPFMS',  tev_refit_start_label)
-    refits *= refit_it(muon_refitter.clone(RefitIndex=cms.vint32(3)), 'Picky',  tev_refit_start_label)
-    refits *= refit_it(muon_refitter.clone(RefitIndex=cms.vint32(4)), 'DYT',    tev_refit_start_label)
-    refits *= refit_it(track_refitter,                                'TkOnly', split_track_label, True)
-
-    # AssociationMaps made later in T2TMapComposer need to know where
-    # they start from. This list should be kept up-to-date with the
-    # previous block.
-    refit_starts = [muon_track_label, tev_refit_start_label, tev_refit_start_label, tev_refit_start_label, split_track_label]
+    refit_it(muon_refitter,                                 'Global', muon_track_label)
+    refit_it(muon_refitter.clone(RefitIndex=cms.vint32(2)), 'TPFMS',  tev_refit_start_label)
+    refit_it(muon_refitter.clone(RefitIndex=cms.vint32(3)), 'Picky',  tev_refit_start_label)
+    refit_it(muon_refitter.clone(RefitIndex=cms.vint32(4)), 'DYT',    tev_refit_start_label)
+    refit_it(track_refitter,                                'TkOnly', split_track_label, True)
 
     # If we're in split-tracks mode, refit the one unsplit track as
     # well. (In non-split-tracks mode, we'll use as reference tracks
     # the already-refit tracker tracks above.)
     if split_tracks_mode:
-        refits *= refit_it(track_refitter, 'Unsplit', proc_tag('cosmictrackfinderP5'), True) 
+        refit_it(track_refitter, 'Unsplit', proc_tag('cosmictrackfinderP5'), True) 
+
+    refits = reduce(lambda x,y: x*y, refits)
 
     # We need maps that go straight from the original tracks to the
     # ultimate refit collections. Make such maps by composing all the
     # intermediate ones.
 
-    def compose_it(name, first_track_tag):
+    def compose_it(name):
         if name != 'TkOnly':
             base_name = 'stm%s%i'
         else:
             base_name = 'stmMatch%s%i'
 
         comp_obj = cms.EDProducer('T2TMapComposer',
-            first_track_tags = cms.VInputTag(first_track_tag),
+            first_track_tags = cms.VInputTag(refit_starts[name]),
+            last_track_tags = cms.VInputTag(refit_ends[name]),
             map_tags = cms.VInputTag(*[kind_tag(base_name % (name, i+1)) for i in xrange(options.num_refits)])
         )
 
@@ -617,7 +626,7 @@ for reco_kind in label_names.keys():
         setattr(process, tag.moduleLabel, comp_obj)
         return comp_obj
 
-    refits *= reduce(lambda x,y: x*y, [compose_it(nick, refit_start) for nick, refit_start in zip(tracks_to_refit, refit_starts)])
+    refits *= reduce(lambda x,y: x*y, [compose_it(nick) for nick in tracks_to_refit])
 
     # Run just local cosmic reco and cosmic muon reco, then run our
     # refits.
