@@ -6,3 +6,4 @@ crab*
 pickevents*
 Cosmics/test/Resolution/plots
 Cosmics/test/Resolution/save_plots
+*.pyc

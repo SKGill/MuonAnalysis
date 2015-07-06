@@ -17,4 +17,5 @@
   <use name="TrackingTools/Records"/>
   <use name="TrackingTools/TrajectoryState"/>
   <use name="TrackingTools/TransientTrack"/>
+  <use name="SimGeneral/TrackingAnalysis"/>
 </library>

@@ -46,6 +46,7 @@
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateClosestToPoint.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrack.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
+#include "SimGeneral/TrackingAnalysis/interface/SimHitTPAssociationProducer.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -233,21 +234,32 @@ TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, co
   if (out) *out << "trying to propagate MC truth track to position " << pos << "\n";
 
   edm::Handle<TrackingParticleCollection> gen_tracks;
-  event.getByLabel(edm::InputTag("mergedtruth", "MergedTrackTruth"), gen_tracks);
+  event.getByLabel(edm::InputTag("mix", "MergedTrackTruth"), gen_tracks);
 
   if (out) *out << "found " << gen_tracks->size() << " truth tracks\n";
-
+  
   // There should be exactly one TrackingParticle with |pdgId| =
   // 13. If there seems to be more than one, give up.
   const TrackingParticle* cosmic_tp = 0;
-  for (TrackingParticleCollection::const_iterator it = gen_tracks->begin(), ite = gen_tracks->end(); it != ite; ++it) {
+  unsigned int cosmic_tp_index = -1, ndx = 0;
+  for (TrackingParticleCollection::const_iterator it = gen_tracks->begin(), ite = gen_tracks->end(); it != ite; ++it, ++ndx) {
     if (abs(it->pdgId()) == 13) {
       if (cosmic_tp != 0) {
 	cosmic_tp = 0;
 	break;
       }
       cosmic_tp = &*it;
+      cosmic_tp_index = ndx;
     }
+  }
+
+  edm::Handle<SimHitTPAssociationProducer::SimHitTPAssociationList> simhitassoc;
+  event.getByLabel("simhitAssoc", simhitassoc );
+
+  std::vector<TrackPSimHitRef> mysimhits;
+  for (auto pairSHTP : *simhitassoc) {
+    if (pairSHTP.first.key() == cosmic_tp_index)
+      mysimhits.push_back(pairSHTP.second);
   }
 
   TrajectoryStateClosestToPoint* ret = 0;
@@ -265,20 +277,18 @@ TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, co
 
     // Find the closest simHit to the point we want to propagate to, and
     // save its position and momentum.
-    //double min_mag2 = 1e99;
+    double min_mag2 = 1e99;
     GlobalPoint vtx;
     GlobalVector mom;
-    /* 
+    
     //No trackPSimHit() member of TrackingParticle in CMSSW_7_3_2
+    
+    for (auto hit: mysimhits){
+      if (out) *out << "  considering simhit in " << hit->detUnitId();
 
-    const std::vector<PSimHit>& simhits = cosmic_tp->trackPSimHit();
-    for (std::vector<PSimHit>::const_iterator it = simhits.begin(), ite = simhits.end(); it != ite; ++it) {
-      const PSimHit& hit = *it;
-      if (out) *out << "  considering simhit in " << hit.detUnitId();
-
-      const GeomDet* det = geometry->idToDet(DetId(hit.detUnitId()));
-      const LocalVector& lv = hit.momentumAtEntry();
-      const Local3DPoint& lp = hit.localPosition();
+      const GeomDet* det = geometry->idToDet(DetId(hit->detUnitId()));
+      const LocalVector& lv = hit->momentumAtEntry();
+      const Local3DPoint& lp = hit->localPosition();
       const GlobalPoint pt = det->surface().toGlobal(lp);
       const GlobalVector delta = pt - pos;
 
@@ -290,7 +300,7 @@ TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, co
 	min_mag2 = delta.mag2();
       }
     }
-    */
+    
     if (out) *out << "making trajectory state with vtx " << vtx << ", momentum " << mom << ", charge " << cosmic_tp->charge() << "\n";
     
     // Propagate the momentum from the simHit's point as close to the
@@ -1108,7 +1118,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     if (is_mc) {
       TrajectoryStateClosestToPoint* mc_tscp = 0;
       try {
-	mc_tscp = propagate_mc_to_point(event, setup, upper_bottom_pos); //, &std::cout);
+	mc_tscp = propagate_mc_to_point(event, setup, upper_bottom_pos, &std::cout);
       }
       catch (const cms::Exception& e) {
 	mc_tscp = 0;

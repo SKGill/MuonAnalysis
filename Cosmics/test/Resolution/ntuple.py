@@ -249,7 +249,10 @@ import FWCore.ParameterSet.Config as cms
 proc_name = 'CosmicSplittingResolution'
 process = cms.Process(proc_name)
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.max_events))
-process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring(*options.files))
+process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring(*options.files),
+                            secondaryFileNames=cms.untracked.vstring(
+                            'file:gensim1.root','file:gensim2.root')
+                            )
 from Configuration.EventContent.EventContent_cff import RAWEventContent
 process.source.inputCommands = cms.untracked.vstring('drop *')
 process.source.inputCommands.extend(RAWEventContent.outputCommands)
@@ -631,8 +634,28 @@ for reco_kind in label_names.keys():
     # Run just local cosmic reco and cosmic muon reco, then run our
     # refits.
     sobj = process.RawToDigi * reco_frag * refits
-    #if options.is_mc:
-    #    sobj = process.mix * process.mergedtruth * sobj
+
+    # Include map here no _
+    if options.is_mc:
+        process.simhitAssoc = cms.EDProducer("SimHitTPAssociationProducer",
+                                             simHitSrc = cms.VInputTag(cms.InputTag('g4SimHits','MuonDTHits'),
+                                                                       cms.InputTag('g4SimHits','MuonCSCHits'),
+                                                                       cms.InputTag('g4SimHits','MuonRPCHits'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsTIBLowTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsTIBHighTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsTIDLowTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsTIDHighTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsTOBLowTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsTOBHighTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsTECLowTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsTECHighTof'),
+                                                                       cms.InputTag( 'g4SimHits','TrackerHitsPixelBarrelLowTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsPixelBarrelHighTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsPixelEndcapLowTof'),
+                                                                       cms.InputTag('g4SimHits','TrackerHitsPixelEndcapHighTof') ),
+                                             trackingParticleSrc = cms.InputTag('mix', 'MergedTrackTruth')
+                                             )
+        sobj = process.simhitAssoc * sobj
     myrecocosmics = kindly_process('myrecocosmics', cms.Sequence(sobj))
 
     # Run the ntuple maker. See its code for documentation of the
