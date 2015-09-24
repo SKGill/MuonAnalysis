@@ -285,7 +285,11 @@ process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_PostLS1_cff')
 process.load('TrackingTools.TransientTrack.TransientTrackBuilder_cfi')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-process.GlobalTag.globaltag = options.global_tag
+if options.global_tag.startswith('auto:'):
+    from Configuration.AlCa.GlobalTag import GlobalTag
+    process.GlobalTag = GlobalTag(process.GlobalTag, options.global_tag, '')
+else:
+    process.GlobalTag.globaltag = options.global_tag
 
 if not options.pp_reco_mode:
     process.load('Configuration.StandardSequences.ReconstructionCosmics_cff')
@@ -297,8 +301,8 @@ else:
         process.standAloneMuons.STATrajBuilderParameters.BWFilterParameters.MuonTrajectoryUpdatorParameters.Granularity = 0
 
 if options.is_mc:
-    process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-    process.load('SimGeneral.TrackingAnalysis.trackingParticles_cfi')
+#    process.load('SimGeneral.MixingModule.mixNoPU_cfi')
+#    process.load('SimGeneral.TrackingAnalysis.trackingParticles_cfi')
     process.load('Configuration.StandardSequences.RawToDigi_cff')
 else:
     process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
@@ -615,8 +619,8 @@ for reco_kind in label_names.keys():
     # Run just local cosmic reco and cosmic muon reco, then run our
     # refits.
     sobj = process.RawToDigi * reco_frag * refits
-    if options.is_mc:
-        sobj = process.mix * process.mergedtruth * sobj
+    #if options.is_mc:
+    #    sobj = process.mix * process.mergedtruth * sobj
     myrecocosmics = kindly_process('myrecocosmics', cms.Sequence(sobj))
 
     # Run the ntuple maker. See its code for documentation of the
