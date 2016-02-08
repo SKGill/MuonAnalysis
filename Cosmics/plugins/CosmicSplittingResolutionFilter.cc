@@ -62,21 +62,23 @@ track_type remapMuonTrackType(reco::Muon::MuonTrackType t) {
 }
 
 
-reco::Muon::MuonTrackTypePair tevOptimized_old(const reco::TrackRef& combinedTrack,
+std::vector<reco::Muon::MuonTrackTypePair> tevOptimized_other(const reco::TrackRef& combinedTrack,
 						  const reco::TrackRef& trackerTrack,
 						  const reco::TrackRef& tpfmsTrack,
 						  const reco::TrackRef& pickyTrack,
+						  const reco::TrackRef& dytTrack,
 						  const double ptThreshold,
 						  const double tune1,
 						  const double tune2,
 						  double dptcut) {
 
   // Array for convenience below.
-  const reco::Muon::MuonTrackTypePair refit[4] = { 
+  const reco::Muon::MuonTrackTypePair refit[5] = { 
     make_pair(trackerTrack, reco::Muon::InnerTrack), 
     make_pair(combinedTrack,reco::Muon::CombinedTrack),
     make_pair(tpfmsTrack,   reco::Muon::TPFMS),
-    make_pair(pickyTrack,   reco::Muon::Picky)
+    make_pair(pickyTrack,   reco::Muon::Picky),
+    make_pair(dytTrack,     reco::Muon::DYT)
   }; 
   
   // Calculate the log(tail probabilities). If there's a problem,
@@ -84,8 +86,8 @@ reco::Muon::MuonTrackTypePair tevOptimized_old(const reco::TrackRef& combinedTra
   // the track being not available, whether the (re)fit failed or it's
   // just not in the event, or if the (re)fit ended up with no valid
   // hits.
-  double prob[4] = {0.,0.,0.,0.};
-  bool valid[4] = {0,0,0,0};
+  double prob[5] = {0.,0.,0.,0.,0.};
+  bool valid[5] = {0,0,0,0,0};
 
   double dptmin = 1.;
 
@@ -106,7 +108,14 @@ reco::Muon::MuonTrackTypePair tevOptimized_old(const reco::TrackRef& combinedTra
 
   
   // Start with picky.
+  // Old tuneP
   int chosen = 3;
+  // TuneR sigma 
+  int chosen_tuneR_s = 3;
+  // TuneR prob (no DYT)
+  int chosen_tuneR_p = 3;
+  // TuneR sigma2 (prob cut)
+  int chosen_tuneR_s2 = 3;
   
   // If there's a problem with picky, make the default one of the
   // other tracks. Try TPFMS first, then global, then tracker-only.
@@ -124,7 +133,7 @@ reco::Muon::MuonTrackTypePair tevOptimized_old(const reco::TrackRef& combinedTra
     }
   } 
   
-  // Now the algorithm: switch from picky to tracker-only if the
+  // Now the old tuneP algorithm: switch from picky to tracker-only if the
   // difference, log(tail prob(picky)) - log(tail prob(tracker-only))
   // is greater than a tuned value. Then compare the
   // so-picked track to TPFMS in the same manner using another tuned
@@ -138,14 +147,78 @@ reco::Muon::MuonTrackTypePair tevOptimized_old(const reco::TrackRef& combinedTra
   if (chosen == 3 && !valid[3] ) chosen = 2;
   if (chosen == 2 && !valid[2] ) chosen = 1;
   if (chosen == 1 && !valid[1] ) chosen = 0; 
+  ////////////////////////////////////////////
+  // TuneR sigma algorithm: TuneR + DYT
+  ////////////////////////////////////////////
+
+  dptmin = 1.;
+
+  if (dptcut>0) {  
+    for (unsigned int i = 0; i < 5; ++i)
+      if (refit[i].first.isNonnull())
+        if (refit[i].first->ptError()/refit[i].first->pt()<dptmin) dptmin = refit[i].first->ptError()/refit[i].first->pt();
+  
+    if (dptmin>dptcut) dptcut = dptmin+0.15;
+  }
+
+  for (unsigned int i = 0; i < 5; ++i) 
+    if (refit[i].first.isNonnull()){ 
+      valid[i] = true;
+      if (refit[i].first->numberOfValidHits() && (refit[i].first->ptError()/refit[i].first->pt()<dptcut || dptcut<0)) 
+	prob[i] = muon::trackProbability(refit[i].first); 
+    }
+
+
+  if (prob[4]>0. && prob[3]>0.) {
+    if(refit[3].first->pt()>0 && refit[4].first->pt()>0 &&
+       (refit[4].first->ptError()/refit[4].first->pt()-refit[3].first->ptError()/refit[3].first->pt())<=0.0)
+      chosen_tuneR_s=4; // dyt
+  }
+  if (prob[2] > 0. && (prob[chosen_tuneR_s] - prob[2]) > 24) // Hardcoded tune1 for now
+    chosen_tuneR_s = 2;
+  if (prob[0] > 0. && (prob[chosen_tuneR_s] - prob[0]) > 35) // Hardcoded tune2 for now
+    chosen_tuneR_s = 0;
+  if ((refit[chosen_tuneR_s].first->pt() < 150 && prob[0] > 0.) || (trackerTrack->pt() < 150 && prob[0] > 0.) )
+    if (prob[chosen_tuneR_s] - prob[0] > 1)
+      chosen_tuneR_s = 0;
+  ////////////////////////////////////////////
+  // TuneR prob algorithm: TuneR NO DYT
+  ////////////////////////////////////////////
+  if (prob[2]>0. && prob[3]>0.) {
+    //if(prob[3] - prob[2]>10)
+    if(prob[3] - prob[2]>24)
+      chosen_tuneR_p=2; // tpfms
+  }
+  if (prob[0] > 0. && (prob[chosen_tuneR_p] - prob[0]) > 35)
+    chosen_tuneR_p = 0;
+  if ((refit[chosen_tuneR_p].first->pt() < 150 && prob[0] > 0.) || (trackerTrack->pt() < 150 && prob[0] > 0.) )
+    if (prob[chosen_tuneR_p] - prob[0] > 1)
+      chosen_tuneR_p = 0;
+  ////////////////////////////////////////////
+  // TuneR sigma2 algorithm: TuneR + DYT with prob cut
+  ////////////////////////////////////////////
+  if (prob[4]>0. && prob[3]>0.) {
+    if((prob[3]-prob[4])>23)
+      chosen_tuneR_s2=4; // dyt
+  }
+  if (prob[2] > 0. && (prob[chosen_tuneR_s2] - prob[2]) > 10)
+    chosen_tuneR_s2 = 2;
+  if (prob[0] > 0. && (prob[chosen_tuneR_s2] - prob[0]) > 20)
+    chosen_tuneR_s2 = 0;
+        
+  if ((refit[chosen_tuneR_s2].first->pt() < 150 && prob[0] > 0.) || (trackerTrack->pt() < 150 && prob[0] > 0.) )
+    if (prob[chosen_tuneR_s2] - prob[0] > 1)
+      chosen_tuneR_s2 = 0;
+  
+  std::vector<reco::Muon::MuonTrackTypePair> result = {refit[chosen],refit[chosen_tuneR_s],refit[chosen_tuneR_p],refit[chosen_tuneR_s2]};
 
   // Done. If pT of the chosen track (or pT of the tracker track) is below the threshold value, return the tracker track.
-  if (valid[chosen] && refit[chosen].first->pt() < ptThreshold && prob[0] > 0.) return make_pair(trackerTrack,reco::Muon::InnerTrack);    
-  if (trackerTrack->pt() < ptThreshold && prob[0] > 0.) return make_pair(trackerTrack,reco::Muon::InnerTrack);  
+  if (valid[chosen] && refit[chosen].first->pt() < ptThreshold && prob[0] > 0.) result[0] = make_pair(trackerTrack,reco::Muon::InnerTrack);    
+  if (trackerTrack->pt() < ptThreshold && prob[0] > 0.) result[0] = make_pair(trackerTrack,reco::Muon::InnerTrack);  
   
   // Return the chosen track (which can be the global track in
   // very rare cases).
-  return refit[chosen];
+  return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -560,6 +633,9 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     { reco::TrackRef(), reco::TrackRef() }, // Ditto for SS tracks.
     { reco::TrackRef(), reco::TrackRef() }, // Ditto for TuneP tracks.
     { reco::TrackRef(), reco::TrackRef() }, // Ditto for old TuneP tracks.
+    { reco::TrackRef(), reco::TrackRef() }, // Ditto for TuneR sigma tracks.
+    { reco::TrackRef(), reco::TrackRef() }, // Ditto for TuneR prob tracks.
+    { reco::TrackRef(), reco::TrackRef() }, // Ditto for TuneR sigma2 tracks.
     { global_muons[which_upper]->globalTrack(), global_muons[!which_upper]->globalTrack() }, // Duplicate the global track here for the one where we propagate to the stand-alone track's position.
     { global_muons[which_upper]->innerTrack(), global_muons[!which_upper]->innerTrack() }    // Ditto for the tracker track.
   };
@@ -671,11 +747,22 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     // Tune P (see MuonCocktails.h/cc).
     // Added dyt track ref to the function
     reco::Muon::MuonTrackTypePair tunep = muon::tevOptimized(glb, tko, fms, pmr, dyt, tunep_pt_threshold, tunep_tune1, tunep_tune2, tunep_dptcut);
-    reco::Muon::MuonTrackTypePair tunep_old = tevOptimized_old(glb, tko, fms, pmr, tunep_pt_threshold, tunep_tune1, tunep_tune2, tunep_dptcut);
+    std::vector<reco::Muon::MuonTrackTypePair> tunep_other = tevOptimized_other(glb, tko, fms, pmr, dyt, tunep_pt_threshold, tunep_tune1, tunep_tune2, tunep_dptcut);
+    // 0 - old tuneP
+    // 1 - tuneR sigma (tuneR + DYT)
+    // 2 - tuneR prob (tuneR no DYT)
+    // 3 - tuneR sigma2 (tuneR + DYT prob cut)
+
     tracks[tk_tunep][j] = tunep.first;
     nt->choice_tunep[j] = remapMuonTrackType(tunep.second);
-    tracks[tk_tunep_old][j] = tunep_old.first;
-    nt->choice_tunep_old[j] = remapMuonTrackType(tunep_old.second);
+    tracks[tk_tunep_old][j] = tunep_other[0].first;
+    nt->choice_tunep_old[j] = remapMuonTrackType(tunep_other[0].second);
+    tracks[tk_tuner_sigma][j] = tunep_other[1].first;
+    nt->choice_tuner_sigma[j] = remapMuonTrackType(tunep_other[1].second);
+    tracks[tk_tuner_prob][j] = tunep_other[2].first;
+    nt->choice_tuner_prob[j] = remapMuonTrackType(tunep_other[2].second);
+    tracks[tk_tuner_sigma2][j] = tunep_other[3].first;
+    nt->choice_tuner_sigma2[j] = remapMuonTrackType(tunep_other[3].second);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
