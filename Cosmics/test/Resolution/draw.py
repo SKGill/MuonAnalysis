@@ -9,10 +9,12 @@ ROOT.gStyle.SetOptFit(1111)
 
 def fit_histo(h, hist_name, draw=False):
     if '_test' in hist_name:
-        #print hist_name
         factor = 2.5 # mean +/- 1.5 * rms
-        hist_name = hist_name.replace('_test','')
-        #print hist_name,h
+        hist_name = hist_name.replace('_test','')        
+    if '_fixed' in hist_name:
+        factor = 99.9 # mean +/- 1.5 * rms
+        hist_name = hist_name.replace('_fixed','')
+        print h     
     elif 'P' in hist_name: # pull
         factor = 3/(h.GetRMS() if h.GetRMS() > 0 else 1) # fix to mean +/- 3
     elif 'R' in hist_name or 'D' in hist_name:
@@ -28,7 +30,21 @@ def fit_histo(h, hist_name, draw=False):
     original_sigma = None
     refit_count = 0
     while 1:
-        res = fit_gaussian(h, factor, opt)
+        if factor == 99.9:
+            i=[0]
+            core_mean  = h.GetMean()
+            core_width = factor*h.GetRMS()
+            fcn = ROOT.TF1('core%i' % i[0], 'gaus', core_mean - core_width, core_mean + core_width)
+            i[0] += 1
+            h.Fit(fcn, 'qrll')
+            res = {
+        'fcn': fcn,
+        'constant': (fcn.GetParameter(0), fcn.GetParError(0)),
+        'mu':       (fcn.GetParameter(1), fcn.GetParError(1)),
+        'sigma':    (fcn.GetParameter(2), fcn.GetParError(2)),
+        }
+        else:
+            res = fit_gaussian(h, factor, opt)
         if original_range is None:
             original_range = res['fcn'].GetXmin(), res['fcn'].GetXmax()
             original_prob = res['fcn'].GetProb()
@@ -156,8 +172,11 @@ class Drawer:
             hist = self.get_histo(bin.name, track, quantity, hist_name)
             if track == 'Global' and quantity == 'qinvpt' and hist_name == 'upperR1lower' and bin.name == 'pT350500':
                 hist_name = hist_name + '_test'            
+            if track == 'TuneP' and quantity == 'qinvpt' and hist_name == 'upperR1lower' and bin.name == 'pT5002000':
+                hist_name = hist_name + '_fixed'            
             res = fit_histo(hist, hist_name, draw=True)
             hist_name = hist_name.replace('_test','')
+            hist_name = hist_name.replace('_fixed','')
             hs.append((bin, hist, res))
         return hs
             
@@ -176,8 +195,11 @@ class Drawer:
             h = self.get_histo(bin.name, track, quantity, hist_name)
             if track == 'Global' and quantity == 'qinvpt' and hist_name == 'upperR1lower' and bin.name == 'pT350500':
                 hist_name = hist_name + '_test'            
+            if track == 'TuneP' and quantity == 'qinvpt' and hist_name == 'upperR1lower' and bin.name == 'pT5002000':
+                hist_name = hist_name + '_fixed'            
             value, error = get_histo_stat(h, hist_name, stat)
             hist_name = hist_name.replace('_test','')
+            hist_name = hist_name.replace('_fixed','')
             y.append(value)
             ey.append(error)
 
@@ -236,19 +258,31 @@ if __name__ == '__main__':
 
     for x in ['pT010', 'pT1020', 'pT2030', 'pT3040', 'pT4050', 'pT5075', 'pT75100', 'pT100150', 'pT150200', 'pT200350', 'pT350500', 'pT5002000', 'pTall', 'pTabove500', 'pTabove750']:
         y = drawer.file.histos.Get(x)
-        if y.Get('choice_tunep_upper').GetEntries() != y.Get('choice_tunep_upper').GetBinContent(2) or y.Get('choice_tunep_lower').GetEntries() != y.Get('choice_tunep_lower').GetBinContent(2):
+        if y.Get('choice_tunep_upper').GetEntries() != y.Get('choice_tunep_upper').GetBinContent(2) and y.Get('choice_tunep_lower').GetEntries() != y.Get('choice_tunep_lower').GetBinContent(2):
             for b,n in enumerate(['Global','TkOnly','TPFMS','Picky','DYT']):
                 y.Get('choice_tunep_upper').GetXaxis().SetBinLabel(b+1,n)
+            ROOT.gStyle.SetOptStat(0)
             y.Get('choice_tunep_upper').Draw('hist text00')
             y.Get('choice_tunep_lower').SetLineColor(ROOT.kRed)
             y.Get('choice_tunep_lower').Draw('hist text00 sames')
+            leg = ROOT.TLegend( 0.78, 0.50, 0.98, 0.65 ) ; 
+            leg.AddEntry( y.Get('choice_tunep_upper'), "upper" )
+            leg.AddEntry( y.Get('choice_tunep_lower'), "lower" )
+            if x == 'pT150200':
+                leg.Draw()
             ps.save('choice_tunep_'+x, log=True)
         if y.Get('choice_tunep_old_upper').GetEntries() != y.Get('choice_tunep_old_upper').GetBinContent(2) or y.Get('choice_tunep_old_lower').GetEntries() != y.Get('choice_tunep_old_lower').GetBinContent(2):
             for b,n in enumerate(['Global','TkOnly','TPFMS','Picky','DYT']):
                 y.Get('choice_tunep_old_upper').GetXaxis().SetBinLabel(b+1,n)
+            ROOT.gStyle.SetOptStat(0)
             y.Get('choice_tunep_old_upper').Draw('hist text00')
             y.Get('choice_tunep_old_lower').SetLineColor(ROOT.kRed)
             y.Get('choice_tunep_old_lower').Draw('hist text00 sames')
+            leg = ROOT.TLegend( 0.78, 0.50, 0.98, 0.65 ) ; 
+            leg.AddEntry( y.Get('choice_tunep_old_upper'), "upper" )
+            leg.AddEntry( y.Get('choice_tunep_old_lower'), "lower" )
+            if x == 'pT150200':
+                leg.Draw()
             ps.save('choice_tunep_old_'+x, log=True)
 
     for proj in ['xy', 'rz']:
@@ -273,11 +307,11 @@ if __name__ == '__main__':
     drawer.draw_legend((0.61,0.70,0.91,0.91), tracks)
     ps.save('res_out')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'rms', 0, 0.25)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'rms', 0, 0.2)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_rms')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.1)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperR1lower', 'sigma', 0, 0.15)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_sigma')
 
@@ -285,7 +319,7 @@ if __name__ == '__main__':
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('res_mean')
 
-    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 1.4)
+    curves = drawer.overlay_curves(tracks, 'qinvpt', 'upperPlower',  'sigma', 0.6, 1.8)
     drawer.draw_legend((0.21,0.70,0.49,0.91), tracks)
     ps.save('pull_sigma')
 
