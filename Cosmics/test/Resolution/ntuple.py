@@ -285,6 +285,7 @@ process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_PostLS1_cff')
 process.load('TrackingTools.TransientTrack.TransientTrackBuilder_cfi')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
+
 if options.global_tag.startswith('auto:'):
     from Configuration.AlCa.GlobalTag import GlobalTag
     process.GlobalTag = GlobalTag(process.GlobalTag, options.global_tag, '')
@@ -316,7 +317,6 @@ if options.edm_output:
     process.outp = cms.EndPath(process.out)
 
 # Testing new alignment
-'''
 from CondCore.DBCommon.CondDBSetup_cfi import CondDBSetup
 '''
 process.trackerAlignment = cms.ESSource('PoolDBESSource',
@@ -361,9 +361,7 @@ process.stripConds = cms.ESSource('PoolDBESSource',
                                                           )
                                         )
 process.es_prefer_stripConds = cms.ESPrefer('PoolDBESSource', 'stripConds')
-'''
-<<<<<<< HEAD
-=======
+
 # Set APEs
 process.setAPE = cms.ESSource("PoolDBESSource",CondDBSetup,
                                         connect = cms.string('sqlite_file:startup-v1_DESRUN2_74_V4_ape-candidate2.db'),
@@ -376,7 +374,7 @@ process.setAPE = cms.ESSource("PoolDBESSource",CondDBSetup,
 process.es_prefer_setAPE = cms.ESPrefer("PoolDBESSource", "setAPE")
 
 ####
->>>>>>> fa1b3c731684b404c9b1d9f1d24bbbbe14701df3
+'''
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 10000
@@ -747,6 +745,7 @@ if __name__ == '__main__' and options.submit:
 [CRAB]
 jobtype = cmssw
 scheduler = %(scheduler)s
+
 
 [CMSSW]
 datasetpath = %(dataset_path)s
