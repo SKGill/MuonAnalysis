@@ -286,6 +286,7 @@ process.load('Configuration.StandardSequences.MagneticField_38T_PostLS1_cff')
 process.load('TrackingTools.TransientTrack.TransientTrackBuilder_cfi')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 process.GlobalTag.globaltag = options.global_tag
+process.GlobalTag.connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS')
 
 if not options.pp_reco_mode:
     process.load('Configuration.StandardSequences.ReconstructionCosmics_cff')
@@ -312,6 +313,7 @@ if options.edm_output:
     process.outp = cms.EndPath(process.out)
 
 # Testing new alignment
+'''
 from CondCore.DBCommon.CondDBSetup_cfi import CondDBSetup
 
 process.trackerAlignment = cms.ESSource('PoolDBESSource',
@@ -356,7 +358,7 @@ process.stripConds = cms.ESSource('PoolDBESSource',
                                                           )
                                         )
 process.es_prefer_stripConds = cms.ESPrefer('PoolDBESSource', 'stripConds')
-
+'''
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 10000
