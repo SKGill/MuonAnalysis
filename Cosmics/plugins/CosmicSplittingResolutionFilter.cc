@@ -46,6 +46,9 @@
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateClosestToPoint.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrack.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
+#include "SimDataFormats/Track/interface/SimTrack.h"
+#include "SimDataFormats/Vertex/interface/SimVertex.h"
+#include "SimGeneral/TrackingAnalysis/interface/SimHitTPAssociationProducer.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -229,24 +232,28 @@ std::vector<reco::Muon::MuonTrackTypePair> tevOptimized_other(const reco::TrackR
 // track is defined).
 // JMTBAD should move this into a library, make InputTags configurable...
 
-TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, const edm::EventSetup& setup, const GlobalPoint& pos, std::ostream* out=0) {
+TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, const edm::EventSetup& setup, const GlobalPoint& pos, std::pair<edm::EDGetToken, edm::EDGetToken> tokens, std::ostream* out=0) {
   if (out) *out << "trying to propagate MC truth track to position " << pos << "\n";
 
   edm::Handle<TrackingParticleCollection> gen_tracks;
-  event.getByLabel(edm::InputTag("mergedtruth", "MergedTrackTruth"), gen_tracks);
+  event.getByToken(tokens.first, gen_tracks);
+  edm::Handle<SimHitTPAssociationProducer::SimHitTPAssociationList> simHitsTPAssoc;
+  event.getByToken(tokens.second, simHitsTPAssoc);  
 
   if (out) *out << "found " << gen_tracks->size() << " truth tracks\n";
 
   // There should be exactly one TrackingParticle with |pdgId| =
   // 13. If there seems to be more than one, give up.
   const TrackingParticle* cosmic_tp = 0;
-  for (TrackingParticleCollection::const_iterator it = gen_tracks->begin(), ite = gen_tracks->end(); it != ite; ++it) {
+  int cosmic_tp_index = 0;
+  for (TrackingParticleCollection::const_iterator it = gen_tracks->begin(), ite = gen_tracks->end(); it != ite; ++it) {    
     if (abs(it->pdgId()) == 13) {
       if (cosmic_tp != 0) {
 	cosmic_tp = 0;
 	break;
       }
       cosmic_tp = &*it;
+      cosmic_tp_index = it - gen_tracks->begin();
     }
   }
 
@@ -265,9 +272,32 @@ TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, co
 
     // Find the closest simHit to the point we want to propagate to, and
     // save its position and momentum.
-    //double min_mag2 = 1e99;
+    double min_mag2 = 1e99;
     GlobalPoint vtx;
     GlobalVector mom;
+
+    edm::Ref<TrackingParticleCollection> ref(gen_tracks, cosmic_tp_index);
+    std::pair<TrackingParticleRef, TrackPSimHitRef> clusterTPpairWithDummyTP(ref,TrackPSimHitRef());
+    auto range = std::equal_range(simHitsTPAssoc->begin(), simHitsTPAssoc->end(), 
+				  clusterTPpairWithDummyTP, SimHitTPAssociationProducer::simHitTPAssociationListGreater);
+
+    for(auto ip = range.first; ip != range.second; ++ip) {
+      TrackPSimHitRef TPhit = ip->second;
+      const GeomDet* det = geometry->idToDet(DetId(TPhit->detUnitId()));
+      const LocalVector& lv = TPhit->momentumAtEntry();
+      const Local3DPoint& lp = TPhit->localPosition();
+      const GlobalPoint pt = det->surface().toGlobal(lp);
+      const GlobalVector delta = pt - pos;
+
+      if (out) *out << "  its global position: " << pt << " distance^2 to point wanted: " << delta.mag2() << " current min distance^2: " << min_mag2 << "\n";
+
+      if (delta.mag2() < min_mag2) {
+	mom = det->surface().toGlobal(lv);
+	vtx = pt;
+	min_mag2 = delta.mag2();
+      }
+    }
+
     /* 
     //No trackPSimHit() member of TrackingParticle in CMSSW_7_3_2
 
@@ -326,21 +356,31 @@ private:
   // specially-configured cosmics reco).
   bool use_pp_reco;
   // The GenParticles label.
-  edm::InputTag gen_muon_label;
+  edm::EDGetToken gen_muon_label;
   // The global muon tracks label.
-  edm::InputTag split_muon_label;
+  edm::EDGetToken split_muon_label;
   // The reference track label (for e.g. binning by pT).
-  edm::InputTag ref_track_label;
+  edm::EDGetToken ref_track_label;
   // The label for the map which gets the ultimate global refit.
-  edm::InputTag global_map_label;
+  edm::EDGetToken  global_map_label;
   // The label for the map which gets the ultimate TPFMS refit.
-  edm::InputTag tpfms_map_label;
+  edm::EDGetToken  tpfms_map_label;
   // The label for the map which gets the ultimate picky refit.
-  edm::InputTag picky_map_label;
+  edm::EDGetToken  picky_map_label;
   // The label for the map which gets the ultimate DYT refit.
-  edm::InputTag dyt_map_label;
+  edm::EDGetToken  dyt_map_label;
   // The label for the map which gets the ultimate tracker-only refit.
-  edm::InputTag trackeronly_map_label;
+  edm::EDGetToken  trackeronly_map_label;
+  // Token for Digis
+  edm::EDGetToken digisToken;
+  // Token for SimTracks
+  edm::EDGetToken simTrackToken;
+  // Token for SimVertices
+  edm::EDGetToken simVertexToken;
+  // Token for TrackingParticles
+  edm::EDGetToken trackingParticleToken;
+  // Token for SimHit association to Tracking Particles
+  edm::EDGetToken simHitTPAssocToken;
   // The "cut" value in the TMR algorithm.
   double tmr_cut;
   // The tune values for Tune P.
@@ -398,14 +438,19 @@ CosmicSplittingResolutionFilter::CosmicSplittingResolutionFilter(const edm::Para
     dataset_id(cfg.getParameter<unsigned>("dataset_id")),
     use_split_tracks(cfg.getParameter<bool>("use_split_tracks")),
     use_pp_reco(cfg.getParameter<bool>("use_pp_reco")),
-    gen_muon_label(cfg.getParameter<edm::InputTag>("gen_muon_label")),
-    split_muon_label(cfg.getParameter<edm::InputTag>("split_muon_label")),
-    ref_track_label(cfg.getParameter<edm::InputTag>("ref_track_label")),
-    global_map_label(cfg.getParameter<edm::InputTag>("global_map_label")),
-    tpfms_map_label(cfg.getParameter<edm::InputTag>("tpfms_map_label")),
-    picky_map_label(cfg.getParameter<edm::InputTag>("picky_map_label")),
-    dyt_map_label(cfg.getParameter<edm::InputTag>("dyt_map_label")),
-    trackeronly_map_label(cfg.getParameter<edm::InputTag>("trackeronly_map_label")),
+    gen_muon_label(consumes<reco::GenParticleCollection >(cfg.getParameter<edm::InputTag>("gen_muon_label"))),
+    split_muon_label(consumes<reco::MuonCollection >(cfg.getParameter<edm::InputTag>("split_muon_label"))),
+    ref_track_label(consumes<reco::TrackCollection >(cfg.getParameter<edm::InputTag>("ref_track_label"))),
+    global_map_label ( consumes<reco::TrackToTrackMap >(cfg.getParameter<edm::InputTag>("global_map_label"))),
+    tpfms_map_label ( consumes<reco::TrackToTrackMap >(cfg.getParameter<edm::InputTag>("tpfms_map_label"))),
+    picky_map_label ( consumes<reco::TrackToTrackMap >(cfg.getParameter<edm::InputTag>("picky_map_label"))),
+    dyt_map_label ( consumes<reco::TrackToTrackMap >(cfg.getParameter<edm::InputTag>("dyt_map_label"))),
+    trackeronly_map_label ( consumes<reco::TrackToTrackMap >(cfg.getParameter<edm::InputTag>("trackeronly_map_label"))),
+    digisToken ( consumes<L1GlobalTriggerReadoutRecord >(edm::InputTag("gtDigis"))),
+    simTrackToken ( consumes<std::vector<SimTrack >>(edm::InputTag("g4SimHits"))),
+    simVertexToken ( consumes<std::vector<SimVertex >>(edm::InputTag("g4SimHits"))),
+    trackingParticleToken ( consumes<std::vector<TrackingParticle >>(edm::InputTag("mix", "MergedTrackTruth"))),
+    simHitTPAssocToken ( consumes<SimHitTPAssociationProducer::SimHitTPAssociationList >(edm::InputTag("simHitTPAssocProducer"))),
     tmr_cut(cfg.getParameter<double>("tmr_cut")),
     tunep_pt_threshold(cfg.getParameter<double>("tunep_pt_threshold")),
     tunep_tune1(cfg.getParameter<double>("tunep_tune1")),
@@ -469,7 +514,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   // Cosmics taken during collisions runs can get on tape through a
   // special trigger, technical #25. Store whether this fired.
   edm::Handle<L1GlobalTriggerReadoutRecord> gtReadoutRecord;
-  event.getByLabel("gtDigis", gtReadoutRecord);
+  event.getByToken(digisToken, gtReadoutRecord);
   nt->tt25 = gtReadoutRecord->technicalTriggerWord().at(25);
   // JMTBAD need to add some other trigger selection, especially for MC.
 
@@ -492,37 +537,48 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   // Get the collections we need, depending on our configuration.
 
   edm::Handle<reco::GenParticleCollection> gen_muons;
+  edm::Handle<std::vector<SimTrack>> sim_tracks;
+  edm::Handle<std::vector<SimVertex>> sim_vertices;
   if (is_mc) {
-    event.getByLabel(gen_muon_label, gen_muons);
+    //event.getByToken(gen_muon_label, gen_muons);
     if (gen_muons.failedToGet()) {
-      edm::LogInfo("CosmicSplittingResolution") << "Event failed: is_mc true and could not get the gen_muons collection " << gen_muon_label;
+      edm::LogInfo("CosmicSplittingResolution") << "Event failed: is_mc true and could not get the gen_muons collection ";// << gen_muon_label;
       handle_error(error_collections);
-      return false;
+      //return false;
+    }
+    event.getByToken(simTrackToken, sim_tracks);
+    event.getByToken(simVertexToken, sim_vertices);
+
+    for (auto st:*sim_tracks) {
+      if (abs(st.type()) == 13 && !st.noVertex()){
+	edm::LogInfo("CosmicSplittingResolution") << "MOMX=" <<st.momentum().Px();
+	edm::LogInfo("CosmicSplittingResolution") << "VX=" <<sim_vertices->at(st.vertIndex()).position().X();
+      }
     }
   }
   
   edm::Handle<reco::MuonCollection> split_muons;
-  event.getByLabel(split_muon_label, split_muons);
+  event.getByToken(split_muon_label, split_muons);
 
   edm::Handle<reco::TrackCollection> ref_tracks;
-  event.getByLabel(ref_track_label, ref_tracks);
+  event.getByToken(ref_track_label, ref_tracks);
 
   edm::Handle<reco::TrackToTrackMap> global_map;
-  event.getByLabel(global_map_label, global_map);
+  event.getByToken(global_map_label,global_map);
 
   edm::Handle<reco::TrackToTrackMap> tpfms_map;
-  event.getByLabel(tpfms_map_label, tpfms_map);
+  event.getByToken(tpfms_map_label,tpfms_map);
 
   edm::Handle<reco::TrackToTrackMap> picky_map;
-  event.getByLabel(picky_map_label, picky_map);
+  event.getByToken(picky_map_label,picky_map);
 
   edm::Handle<reco::TrackToTrackMap> dyt_map;
-  event.getByLabel(dyt_map_label, dyt_map);
+  event.getByToken(dyt_map_label,dyt_map);
 
   edm::Handle<reco::TrackToTrackMap> trackeronly_map;
   const bool get_trackeronly_map = !no_refits;
   if (get_trackeronly_map)
-    event.getByLabel(trackeronly_map_label, trackeronly_map);
+    event.getByToken(trackeronly_map_label,trackeronly_map);
 
   // Check that we can get all the above collections.
   if (split_muons.failedToGet() || ref_tracks.failedToGet() || global_map.failedToGet() || tpfms_map.failedToGet() || picky_map.failedToGet() || dyt_map.failedToGet() || (get_trackeronly_map && trackeronly_map.failedToGet())) {
@@ -984,25 +1040,39 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   edm::LogInfo("CosmicSplittingResolution") << "Cocktail info:\n" << out.str() << "choice_tunep_old[0] = " << track_nicks[nt->choice_tunep_old[0]] << "  [1] = " << track_nicks[nt->choice_tunep_old[1]];
 
   if (is_mc) {
-    // Get the status-1 generated muon (the one propagated already to
-    // the CMS cavern). JMTBAD true?
-    size_t i = 0;
-    for (; i < gen_muons->size(); ++i)
-      if (gen_muons->at(i).status() == 1)
-	break;
-    const reco::GenParticle& gen_mu(gen_muons->at(i));
+    // TRACKING PARTICLE
+    event.getByToken(simTrackToken, sim_tracks);
+    event.getByToken(simVertexToken, sim_vertices);
 
-    nt->mc_vertex[0] = gen_mu.vx();
-    nt->mc_vertex[1] = gen_mu.vy();
-    nt->mc_vertex[2] = gen_mu.vz();
+    for (auto st:*sim_tracks) {
+      bool not_seen = true;
+      if (abs(st.type()) == 13 && !st.noVertex()){
+	if (not_seen) {
+	  nt->mc_vertex[0] = sim_vertices->at(st.vertIndex()).position().X();
+	  nt->mc_vertex[1] = sim_vertices->at(st.vertIndex()).position().Y();
+	  nt->mc_vertex[2] = sim_vertices->at(st.vertIndex()).position().Z();
 
-    nt->unprop_mc_charge = gen_mu.charge();
-    nt->unprop_mc_pt     = gen_mu.pt();
-    nt->unprop_mc_theta  = gen_mu.theta();
-    nt->unprop_mc_phi    = gen_mu.phi();
-    
+	  nt->unprop_mc_charge = st.charge();
+	  nt->unprop_mc_pt     = st.momentum().Pt();
+	  nt->unprop_mc_theta  = st.momentum().Theta();
+	  nt->unprop_mc_phi    = st.momentum().Phi();  
+	  not_seen = false;
+	}
+	else
+	  break;
+      }
+    }
+
+  //   // Get the status-1 generated muon (the one propagated already to
+  //   // the CMS cavern). JMTBAD true?
+  //   size_t i = 0;
+  //   for (; i < gen_muons->size(); ++i)
+  //     if (gen_muons->at(i).status() == 1)
+  // 	break;
+  //   const reco::GenParticle& gen_mu(gen_muons->at(i));
+
     edm::LogInfo("CosmicSplittingResolution") << "unprop. MC vertex: " << nt->mc_vertex[0] << ", " << nt->mc_vertex[1] << ", " << nt->mc_vertex[2] << "  pT: " << nt->unprop_mc_pt << " eta: " << -log(tan(nt->unprop_mc_theta/2)) << " phi: " << nt->unprop_mc_phi;
-  }
+   }
 
   // Store whether the track had any hits in CSCs or in DTs, and what
   // the TPFMS first station was.
@@ -1108,7 +1178,8 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     if (is_mc) {
       TrajectoryStateClosestToPoint* mc_tscp = 0;
       try {
-	mc_tscp = propagate_mc_to_point(event, setup, upper_bottom_pos); //, &std::cout);
+	std::pair <edm::EDGetToken, edm::EDGetToken> tokens(trackingParticleToken,simHitTPAssocToken);
+	mc_tscp = propagate_mc_to_point(event, setup, upper_bottom_pos, tokens); //, &std::cout);
       }
       catch (const cms::Exception& e) {
 	mc_tscp = 0;
