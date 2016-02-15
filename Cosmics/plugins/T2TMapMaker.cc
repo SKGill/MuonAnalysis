@@ -30,13 +30,17 @@ private:
     }
   };
   
-  edm::InputTag src;
-  edm::InputTag dst;
+  //edm::InputTag src;
+  //edm::InputTag dst;
+  edm::EDGetToken  src;
+  edm::EDGetToken  dst;
 };
 
 T2TMapMaker::T2TMapMaker(const edm::ParameterSet& cfg)
-  : src(cfg.getParameter<edm::InputTag>("src")),
-    dst(cfg.getParameter<edm::InputTag>("dst"))
+  : //src(cfg.getParameter<edm::InputTag>("src")),
+    //dst(cfg.getParameter<edm::InputTag>("dst"))
+    src ( consumes<reco::TrackCollection >(cfg.getParameter<edm::InputTag>("src"))),
+    dst ( consumes<reco::TrackCollection >(cfg.getParameter<edm::InputTag>("dst")))
 {
   produces<reco::TrackToTrackMap>();
 }
@@ -46,19 +50,21 @@ void T2TMapMaker::produce(edm::Event& event, const edm::EventSetup&) {
   std::ostringstream out;
 
   edm::Handle<reco::TrackCollection> src_tracks;
-  event.getByLabel(src, src_tracks);
+  //event.getByLabel(src, src_tracks);
+  event.getByToken(src,src_tracks);
 
   edm::Handle<reco::TrackCollection> dst_tracks;
-  event.getByLabel(dst, dst_tracks);
+  //event.getByLabel(dst, dst_tracks);
+  event.getByToken(dst,dst_tracks);
 
   const int ni = src_tracks->size();
   const int nj = dst_tracks->size();
 
   if (debug) {
-    out << "src " << src.encode() << " has " << ni << " tracks:\n";
+    //out << "src " << src.encode() << " has " << ni << " tracks:\n";
     for (int i = 0; i < ni; ++i)
       out << "src tk #" << i << " pt: " << src_tracks->at(i).pt() << " eta: " << src_tracks->at(i).eta() << "\n";
-    out << "dst " << dst.encode() << " has " << nj << " tracks:\n";
+    //out << "dst " << dst.encode() << " has " << nj << " tracks:\n";
     for (int j = 0; j < nj; ++j)
       out << "dst tk #" << j << " pt: " << dst_tracks->at(j).pt() << " eta: " << dst_tracks->at(j).eta() << "\n";
   }
@@ -75,7 +81,7 @@ void T2TMapMaker::produce(edm::Event& event, const edm::EventSetup&) {
   memset(i_used, 0, sizeof(bool)*ni);
   memset(j_used, 0, sizeof(bool)*nj);
 
-  std::auto_ptr<reco::TrackToTrackMap> t2tmap(new reco::TrackToTrackMap);
+  std::auto_ptr<reco::TrackToTrackMap> t2tmap(new reco::TrackToTrackMap(&event.productGetter()));
 
   for (std::vector<entry>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
     if (!i_used[it->i] && !j_used[it->j]) {

@@ -89,6 +89,10 @@ options = parser.parse_args()
 
 ################################################################################
 
+# Hardcoded is-mc
+options.is_mc = True
+options.alca_set = 'GlobalTag_MC'
+
 # Finalize the options after including any overrides, and do some
 # basic checks of consistency.
 
@@ -266,7 +270,7 @@ if options.run_events:
     process.source.eventsToProcess = cms.untracked.VEventRange(*[cms.untracked.EventRange(x[0],x[-1],x[0],x[-1]) for x in options.run_events])
 
 # The output ntuple will go in this root file.
-process.TFileService = cms.Service('TFileService', fileName=cms.string('resolution_ntuple.root'))
+process.TFileService = cms.Service('TFileService', fileName=cms.string('~/eos/resolution_ntuple.root'))
 
 # Slick way to attach a bunch of different alignment records.
 from MuonAnalysis.Cosmics.CMSSWTools import set_preferred_alca
@@ -285,6 +289,7 @@ process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_PostLS1_cff')
 process.load('TrackingTools.TransientTrack.TransientTrackBuilder_cfi')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
+
 if options.global_tag.startswith('auto:'):
     from Configuration.AlCa.GlobalTag import GlobalTag
     process.GlobalTag = GlobalTag(process.GlobalTag, options.global_tag, '')
@@ -302,11 +307,20 @@ else:
 
 if options.is_mc:
 #    process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-#    process.load('SimGeneral.TrackingAnalysis.trackingParticles_cfi')
+#    process.load('SimGeneral.TrackingAnalysis.trackingParticles_cfi') ## MERGED TRUTH HERE
     process.load('Configuration.StandardSequences.RawToDigi_cff')
+    process.load("SimGeneral.MixingModule.mixNoPU_cfi")
+    process.load("SimGeneral.MixingModule.trackingTruthProducerSelection_cfi")
+    process.trackingParticles.simHitCollections = cms.PSet( )
+    process.mix.playback = cms.untracked.bool(True)
+    process.mix.digitizers = cms.PSet(
+     mergedtruth = cms.PSet(process.trackingParticles)
+        )
+    for a in process.aliases: delattr(process, a)
+    process.load('SimGeneral.TrackingAnalysis.simHitTPAssociation_cfi')        
 else:
     process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
-
+    
 # JMTBAD won't hit some things because we don't define the same-named sequences/paths but these things don't look needed here
 from SLHCUpgradeSimulations.Configuration.postLS1Customs import customisePostLS1
 process = customisePostLS1(process)
@@ -315,6 +329,12 @@ if options.edm_output:
     process.out = cms.OutputModule('PoolOutputModule', fileName = cms.untracked.string('edm.root'))
     process.outp = cms.EndPath(process.out)
 
+######
+
+process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(True))
+
+######
+    
 # Testing new alignment
 from CondCore.DBCommon.CondDBSetup_cfi import CondDBSetup
 '''
@@ -360,7 +380,7 @@ process.stripConds = cms.ESSource('PoolDBESSource',
                                                           )
                                         )
 process.es_prefer_stripConds = cms.ESPrefer('PoolDBESSource', 'stripConds')
-'''
+
 # Set APEs
 process.setAPE = cms.ESSource("PoolDBESSource",CondDBSetup,
                                         connect = cms.string('sqlite_file:startup-v1_DESRUN2_74_V4_ape-candidate2.db'),
@@ -373,6 +393,7 @@ process.setAPE = cms.ESSource("PoolDBESSource",CondDBSetup,
 process.es_prefer_setAPE = cms.ESPrefer("PoolDBESSource", "setAPE")
 
 ####
+'''
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 10000
@@ -618,7 +639,10 @@ for reco_kind in label_names.keys():
 
     # Run just local cosmic reco and cosmic muon reco, then run our
     # refits.
-    sobj = process.RawToDigi * reco_frag * refits
+    if options.is_mc:
+        sobj = process.mix * process.simHitTPAssocProducer * process.RawToDigi * reco_frag * refits
+    else:
+        sobj = process.RawToDigi * reco_frag * refits
     #if options.is_mc:
     #    sobj = process.mix * process.mergedtruth * sobj
     myrecocosmics = kindly_process('myrecocosmics', cms.Sequence(sobj))
@@ -743,6 +767,7 @@ if __name__ == '__main__' and options.submit:
 [CRAB]
 jobtype = cmssw
 scheduler = %(scheduler)s
+
 
 [CMSSW]
 datasetpath = %(dataset_path)s

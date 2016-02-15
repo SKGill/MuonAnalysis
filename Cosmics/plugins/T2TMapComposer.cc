@@ -49,6 +49,7 @@ private:
 
   std::vector<std::string> new_map_names;
   std::vector<std::vector<edm::InputTag> > map_tags;
+  std::vector<std::vector<edm::EDGetToken> > map_tags2;
 };
 
 T2TMapComposer::T2TMapComposer(const edm::ParameterSet& cfg)
@@ -57,19 +58,25 @@ T2TMapComposer::T2TMapComposer(const edm::ParameterSet& cfg)
     new_map_names = cfg.getParameter<std::vector<std::string> >("new_map_names");
     for (std::vector<std::string>::const_iterator i = new_map_names.begin(), e = new_map_names.end(); i != e; ++i) {
       map_tags.push_back(cfg.getParameter<std::vector<edm::InputTag> >(*i));
+      //map_tags.push_back(cfg.getParameter<std::vector<edm::EDGetToken> >(*i));
       produces<reco::TrackToTrackMap>(*i);
     }
   }
   else {
     new_map_names.push_back("");
     map_tags.push_back(cfg.getParameter<std::vector<edm::InputTag> >("map_tags"));
+    std::vector<edm::EDGetToken> ev;
+    for(auto t:cfg.getParameter<std::vector<edm::InputTag> >("map_tags")){
+      edm::EDGetToken token(consumes<reco::TrackToTrackMap >(t));
+      ev.push_back(token);
+    };
+    map_tags2.push_back(ev);
     produces<reco::TrackToTrackMap>();
   }
 }
 
 reco::TrackToTrackMap* T2TMapComposer::compose(const map_vector& maps) {
   reco::TrackToTrackMap* t2tmap = new reco::TrackToTrackMap;
-
   // For each key->value in the first map, follow the mappings through
   // to the end of the maps vector and store key->ultimate_value in
   // the output map.
@@ -98,20 +105,44 @@ void T2TMapComposer::produce(edm::Event& event, const edm::EventSetup&) {
   static const bool debug = false;
   std::ostringstream out;
 
-  for (size_t i = 0; i < map_tags.size(); ++i) {
+  for (size_t i = 0; i < map_tags2.size(); ++i) {
     // Get all the maps we're to compose and put them in the vector in order.
-    map_vector maps(map_tags[i].size());
+    map_vector maps(map_tags2[i].size());
     int itag = 0;
-    for (std::vector<edm::InputTag>::const_iterator tag = map_tags[i].begin(); tag != map_tags[i].end(); ++tag, ++itag) {
-      event.getByLabel(*tag, maps.at(itag));
+    for (std::vector<edm::EDGetToken>::const_iterator tag = map_tags2[i].begin(); tag != map_tags2[i].end(); ++tag, ++itag) {
+      //event.getByLabel(*tag, maps.at(itag));
+      
+      //edm::EDGetToken token(consumes<reco::TrackToTrackMap >(edm::InputTag(*tag)));
+      event.getByToken(*tag, maps.at(itag));
       
       if (debug) {
-	out << "src #" << itag << ": " << tag->encode() << " t2t map\n";
+	//out << "src #" << itag << ": " << tag->encode() << " t2t map\n";
 	dump_t2tmap(out, *maps.at(itag), &event);
       }
     }
+    
+    std::auto_ptr<reco::TrackToTrackMap> t2tmap(new reco::TrackToTrackMap(&event.productGetter()));
+    // For each key->value in the first map, follow the mappings through
+    // to the end of the maps vector and store key->ultimate_value in
+    // the output map.
+    for (reco::TrackToTrackMap::const_iterator orig = maps.at(0)->begin(); orig != maps.at(0)->end(); ++orig) {
+      reco::TrackRef curr = orig->val;
+      for (map_vector::const_iterator map = maps.begin() + 1; map != maps.end(); ++map) {
+	reco::TrackToTrackMap::const_iterator it = (*map)->find(curr);
+	if (it == (*map)->end()) {
+	  curr = reco::TrackRef();
+	  break;
+	}
+	else
+	  curr = it->val;
+      }
 
-    std::auto_ptr<reco::TrackToTrackMap> t2tmap(compose(maps));
+      // If the link is broken somewhere, don't store anything for this
+      // key.
+      if (!curr.isNull())
+	t2tmap->insert(orig->key, curr);
+    }
+
     event.put(t2tmap, new_map_names[i]);
 
     if (debug) {
