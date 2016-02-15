@@ -10,6 +10,7 @@
 #include "ComparisonHists.h"
 #include "CosmicSplittingResolutionNtuple.h"
 #include <ostream>
+#include <iostream>
 
 struct Loader {
   // This helper struct is used to determine the actual quantities to
@@ -242,7 +243,7 @@ struct Bin {
     run_bin          = getOptionalTrackedParameter<unsigned>(pset, "run_bin",               0);
     min_pt           = getOptionalTrackedParameter<double>  (pset, "min_pt",                0);
     max_pt           = getOptionalTrackedParameter<double>  (pset, "max_pt",                1e99);
-    min_eta          = getOptionalTrackedParameter<double>  (pset, "min_eta",               0);
+    min_eta          = getOptionalTrackedParameter<double>  (pset, "min_eta",               -2.5);
     max_eta          = getOptionalTrackedParameter<double>  (pset, "max_eta",               2.5);
     min_phi          = getOptionalTrackedParameter<double>  (pset, "min_phi",              -3.5);
     max_phi          = getOptionalTrackedParameter<double>  (pset, "max_phi",               3.5);
@@ -276,7 +277,7 @@ struct Bin {
       mod_res_v(pull_scales, 15);
     }
 
-    h_chi2dof      = fac.Create("chi2dof",      100/nbins_scale,  0, 100);
+    h_chi2dof      = fac.Create("chi2dof",      20,  0, 10);
     h_pixel_hits   = fac.Create("pixelhits",     10,  0, 10);
     h_strip_hits   = fac.Create("striphits",     25,  0, 25);
     h_pixel_layers = fac.Create("pixellayers",    5,  0,  5);
@@ -393,7 +394,7 @@ struct Bin {
     }
 
     const double ref_eta = -log(tan(nt->ref_theta/2));
-    const double aeta = fabs(ref_eta);
+    const double aeta = (ref_eta); // TAKE OFF FABS
     if (aeta < min_eta || aeta > max_eta) {
       if (debug) *debug << "failed: eta: " << ref_eta << " min_eta: " << min_eta << " max_eta: " << max_eta << "\n";
       return false;
@@ -972,6 +973,7 @@ float xy_to_r(float x, float y) {
 
 void CosmicSplittingResolutionHistos::analyze(const edm::Event&, const edm::EventSetup&) {
   printf("\nEvent loop:\n");
+  std::ostringstream out;
 
   long jentry;
   for (jentry = 0; jentry < tree->GetEntriesFast(); ++jentry) {
@@ -1003,7 +1005,7 @@ void CosmicSplittingResolutionHistos::analyze(const edm::Event&, const edm::Even
       events_used->Fill();
 
     BOOST_FOREACH(Bin* b, bins)
-      b->check_and_fill(nt); //&out);
+      b->check_and_fill(nt);//, &out);
   }
 
   printf("\ndone with %li events!\n", jentry);
