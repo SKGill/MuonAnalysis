@@ -49,6 +49,7 @@
 #include "SimDataFormats/Track/interface/SimTrack.h"
 #include "SimDataFormats/Vertex/interface/SimVertex.h"
 #include "SimGeneral/TrackingAnalysis/interface/SimHitTPAssociationProducer.h"
+#include "JMTucker/Dumpers/interface/Dumpers.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -232,7 +233,23 @@ std::vector<reco::Muon::MuonTrackTypePair> tevOptimized_other(const reco::TrackR
 // track is defined).
 // JMTBAD should move this into a library, make InputTags configurable...
 
+template <typename T>
+  static void dump_ref(const edm::Event& event, std::ostream& out, const edm::Ref<T>& ref) {
+    out << "ref with product id " << ref.id().id();
+    if (ref.id().id() == 0) {
+      out << "\n";
+      return;
+    }
+    if (&event) {
+      edm::Provenance prov = event.getProvenance(ref.id());
+      out << ", branch " << prov.branchName() << " (id " << prov.branchID().id() << "),";
+    }
+    out << " with index " << ref.index() << "\n";
+  }
+
+
 TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, const edm::EventSetup& setup, const GlobalPoint& pos, std::pair<edm::EDGetToken, edm::EDGetToken> tokens, std::ostream* out=0) {
+
   if (out) *out << "trying to propagate MC truth track to position " << pos << "\n";
 
   edm::Handle<TrackingParticleCollection> gen_tracks;
@@ -281,8 +298,13 @@ TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, co
     auto range = std::equal_range(simHitsTPAssoc->begin(), simHitsTPAssoc->end(), 
 				  clusterTPpairWithDummyTP, SimHitTPAssociationProducer::simHitTPAssociationListGreater);
 
+    dump_ref(event, *out, ref);
+
     for(auto ip = range.first; ip != range.second; ++ip) {
       TrackPSimHitRef TPhit = ip->second;
+      dump_ref(event, *out, TPhit);
+      if(abs(TPhit->particleType()) != 13)
+	continue;
       const GeomDet* det = geometry->idToDet(DetId(TPhit->detUnitId()));
       const LocalVector& lv = TPhit->momentumAtEntry();
       const Local3DPoint& lp = TPhit->localPosition();
@@ -290,12 +312,15 @@ TrajectoryStateClosestToPoint* propagate_mc_to_point(const edm::Event& event, co
       const GlobalVector delta = pt - pos;
 
       if (out) *out << "  its global position: " << pt << " distance^2 to point wanted: " << delta.mag2() << " current min distance^2: " << min_mag2 << "\n";
-
+      
       if (delta.mag2() < min_mag2) {
 	mom = det->surface().toGlobal(lv);
 	vtx = pt;
 	min_mag2 = delta.mag2();
       }
+
+      if (out) *out << " vtx " << vtx << ", momentum " << mom << ", type " << TPhit->particleType() << "\n";
+
     }
 
     /* 
@@ -502,6 +527,8 @@ CosmicSplittingResolutionFilter::CosmicSplittingResolutionFilter(const edm::Para
 ////////////////////////////////////////////////////////////////////////////////
 
 bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::EventSetup& setup) {
+
+  std::cout<<"Event\n";
 
   // Clear out the ntuple, and store some basic per-event quantities.
   memset(nt, 0, sizeof(CosmicSplittingResolutionNtuple));
@@ -1042,6 +1069,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   if (is_mc) {
     // TRACKING PARTICLE
     event.getByToken(simTrackToken, sim_tracks);
+    std::cout<<"SIMTRACKS SIZE="<<sim_tracks<<std::endl;
     event.getByToken(simVertexToken, sim_vertices);
 
     for (auto st:*sim_tracks) {
@@ -1179,7 +1207,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
       TrajectoryStateClosestToPoint* mc_tscp = 0;
       try {
 	std::pair <edm::EDGetToken, edm::EDGetToken> tokens(trackingParticleToken,simHitTPAssocToken);
-	mc_tscp = propagate_mc_to_point(event, setup, upper_bottom_pos, tokens); //, &std::cout);
+	mc_tscp = propagate_mc_to_point(event, setup, upper_bottom_pos, tokens, &std::cout);
       }
       catch (const cms::Exception& e) {
 	mc_tscp = 0;
