@@ -90,8 +90,8 @@ options = parser.parse_args()
 ################################################################################
 
 # Hardcoded is-mc
-options.is_mc = True
-options.alca_set = 'GlobalTag_MC'
+#options.is_mc = True
+#options.alca_set = 'GlobalTag_MC'
 
 # Finalize the options after including any overrides, and do some
 # basic checks of consistency.
@@ -254,6 +254,11 @@ proc_name = 'CosmicSplittingResolution'
 process = cms.Process(proc_name)
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.max_events))
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring(*options.files))
+
+#process.add_(cms.Service('Tracer'))
+#import FWCore.PythonUtilities.LumiList as LumiList
+#process.source.lumisToProcess = LumiList.LumiList(filename = 'cosmics_interfill_Run2015_pix_DT_complete.json').getVLuminosityBlockRange()
+
 from Configuration.EventContent.EventContent_cff import RAWEventContent
 process.source.inputCommands = cms.untracked.vstring('drop *')
 process.source.inputCommands.extend(RAWEventContent.outputCommands)
@@ -270,7 +275,8 @@ if options.run_events:
     process.source.eventsToProcess = cms.untracked.VEventRange(*[cms.untracked.EventRange(x[0],x[-1],x[0],x[-1]) for x in options.run_events])
 
 # The output ntuple will go in this root file.
-process.TFileService = cms.Service('TFileService', fileName=cms.string('~/eos/resolution_ntuple.root'))
+#process.TFileService = cms.Service('TFileService', fileName=cms.string('~/eos/resolution_ntuple.root'))
+process.TFileService = cms.Service('TFileService', fileName=cms.string('resolution_ntuple.root'))
 
 # Slick way to attach a bunch of different alignment records.
 from MuonAnalysis.Cosmics.CMSSWTools import set_preferred_alca
@@ -413,7 +419,7 @@ if options.dumps:
     process.MessageLogger.categories.append('T2TMapMaker')
     process.MessageLogger.categories.append('T2TMapComposer')
     process.MessageLogger.categories.append('TrackComparer')
-
+   
 # Stuff we need for refits.
 
 # For refitting tracker tracks.
@@ -457,6 +463,7 @@ if not options.pp_reco_mode:
 else:
     reco_frag = process.reconstruction
 reco_frag.remove(process.lumiProducer) # crashes on some lumis, don't care about this for cosmics
+reco_frag.remove(process.kt6CaloJets) # crashes on interfill data
 
 # If specified, try the "meantimer" DT algo.
 if options.use_dt_meantimer:
