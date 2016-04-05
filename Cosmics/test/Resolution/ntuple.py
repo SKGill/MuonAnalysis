@@ -647,7 +647,7 @@ for reco_kind in label_names.keys():
     if options.is_mc:
         sobj = process.mix * process.simHitTPAssocProducer * process.RawToDigi * process.L1Extra * process.SimL1Emulator * reco_frag * refits
     else:
-        sobj = process.RawToDigi * reco_frag * refits
+        sobj = process.RawToDigi * process.L1Extra * reco_frag * refits
     #if options.is_mc:
     #    sobj = process.mix * process.mergedtruth * sobj
     myrecocosmics = kindly_process('myrecocosmics', cms.Sequence(sobj))
