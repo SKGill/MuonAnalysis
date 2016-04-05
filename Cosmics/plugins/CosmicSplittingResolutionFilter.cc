@@ -49,7 +49,6 @@
 #include "SimDataFormats/Track/interface/SimTrack.h"
 #include "SimDataFormats/Vertex/interface/SimVertex.h"
 #include "SimGeneral/TrackingAnalysis/interface/SimHitTPAssociationProducer.h"
-#include "JMTucker/Dumpers/interface/Dumpers.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
