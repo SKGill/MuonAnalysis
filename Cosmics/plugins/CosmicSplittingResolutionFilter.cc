@@ -49,7 +49,6 @@
 #include "SimDataFormats/Track/interface/SimTrack.h"
 #include "SimDataFormats/Vertex/interface/SimVertex.h"
 #include "SimGeneral/TrackingAnalysis/interface/SimHitTPAssociationProducer.h"
-#include "JMTucker/Dumpers/interface/Dumpers.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -528,7 +527,7 @@ CosmicSplittingResolutionFilter::CosmicSplittingResolutionFilter(const edm::Para
 
 bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::EventSetup& setup) {
 
-  std::cout<<"Event\n";
+  //std::cout<<"Event\n";
 
   // Clear out the ntuple, and store some basic per-event quantities.
   memset(nt, 0, sizeof(CosmicSplittingResolutionNtuple));
@@ -1069,11 +1068,18 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   if (is_mc) {
     // TRACKING PARTICLE
     event.getByToken(simTrackToken, sim_tracks);
-    std::cout<<"SIMTRACKS SIZE="<<sim_tracks<<std::endl;
+    std::cout<<"SIMTRACKS SIZE="<<sim_tracks->size()<<std::endl;
     event.getByToken(simVertexToken, sim_vertices);
+
+    edm::Handle<TrackingParticleCollection> gen_tracks;
+    event.getByToken(trackingParticleToken, gen_tracks);
+    std::cout<<"ASSOCIATED SIMTRACKS SIZE="<<gen_tracks->size()<<std::endl;
 
     for (auto st:*sim_tracks) {
       bool not_seen = true;
+      std::cout<<"type="<<st.type()<<" MOMX=" <<st.momentum().Px()<<" MOMY=" <<st.momentum().Py()<<" MOMZ=" <<st.momentum().Pz()<<" E=" <<st.momentum().E()<<std::endl;
+      std::cout<< "VX=" <<sim_vertices->at(st.vertIndex()).position().X()<< "VY=" <<sim_vertices->at(st.vertIndex()).position().Y()<< "VZ=" <<sim_vertices->at(st.vertIndex()).position().Z()<<std::endl;;
+
       if (abs(st.type()) == 13 && !st.noVertex()){
 	if (not_seen) {
 	  nt->mc_vertex[0] = sim_vertices->at(st.vertIndex()).position().X();
