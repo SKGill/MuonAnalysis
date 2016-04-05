@@ -275,7 +275,6 @@ if options.run_events:
     process.source.eventsToProcess = cms.untracked.VEventRange(*[cms.untracked.EventRange(x[0],x[-1],x[0],x[-1]) for x in options.run_events])
 
 # The output ntuple will go in this root file.
-#process.TFileService = cms.Service('TFileService', fileName=cms.string('~/eos/resolution_ntuple.root'))
 process.TFileService = cms.Service('TFileService', fileName=cms.string('resolution_ntuple.root'))
 
 # Slick way to attach a bunch of different alignment records.
@@ -311,22 +310,21 @@ else:
     if options.segments_in_fit:
         process.standAloneMuons.STATrajBuilderParameters.BWFilterParameters.MuonTrajectoryUpdatorParameters.Granularity = 0
 
+process.load('L1Trigger.Configuration.L1Extra_cff')
 if options.is_mc:
-#    process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-#    process.load('SimGeneral.TrackingAnalysis.trackingParticles_cfi') ## MERGED TRUTH HERE
+    process.load('Configuration.StandardSequences.SimL1Emulator_cff')
     process.load('Configuration.StandardSequences.RawToDigi_cff')
     process.load("SimGeneral.MixingModule.mixNoPU_cfi")
     process.load("SimGeneral.MixingModule.trackingTruthProducerSelection_cfi")
-    process.trackingParticles.simHitCollections = cms.PSet( )
+    process.trackingParticles.simHitCollections = cms.PSet()
     process.mix.playback = cms.untracked.bool(True)
-    process.mix.digitizers = cms.PSet(
-     mergedtruth = cms.PSet(process.trackingParticles)
-        )
-    for a in process.aliases: delattr(process, a)
+    process.mix.digitizers = cms.PSet(mergedtruth = cms.PSet(process.trackingParticles))
+    for a in process.aliases:
+        delattr(process, a)
     process.load('SimGeneral.TrackingAnalysis.simHitTPAssociation_cfi')        
 else:
     process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
-    
+
 # JMTBAD won't hit some things because we don't define the same-named sequences/paths but these things don't look needed here
 from SLHCUpgradeSimulations.Configuration.postLS1Customs import customisePostLS1
 process = customisePostLS1(process)
@@ -647,9 +645,9 @@ for reco_kind in label_names.keys():
     # Run just local cosmic reco and cosmic muon reco, then run our
     # refits.
     if options.is_mc:
-        sobj = process.mix * process.simHitTPAssocProducer * process.RawToDigi * reco_frag * refits
+        sobj = process.mix * process.simHitTPAssocProducer * process.RawToDigi * process.L1Extra * process.SimL1Emulator * reco_frag * refits
     else:
-        sobj = process.RawToDigi * reco_frag * refits
+        sobj = process.RawToDigi * process.L1Extra * reco_frag * refits
     #if options.is_mc:
     #    sobj = process.mix * process.mergedtruth * sobj
     myrecocosmics = kindly_process('myrecocosmics', cms.Sequence(sobj))
