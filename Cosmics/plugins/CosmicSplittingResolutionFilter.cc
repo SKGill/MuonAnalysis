@@ -49,6 +49,7 @@
 #include "SimDataFormats/Track/interface/SimTrack.h"
 #include "SimDataFormats/Vertex/interface/SimVertex.h"
 #include "SimGeneral/TrackingAnalysis/interface/SimHitTPAssociationProducer.h"
+#include "DataFormats/L1Trigger/interface/L1MuonParticle.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -405,6 +406,8 @@ private:
   edm::EDGetToken trackingParticleToken;
   // Token for SimHit association to Tracking Particles
   edm::EDGetToken simHitTPAssocToken;
+  // Token for L1Particles
+  edm::EDGetToken l1particlesToken;
   // The "cut" value in the TMR algorithm.
   double tmr_cut;
   // The tune values for Tune P.
@@ -475,6 +478,7 @@ CosmicSplittingResolutionFilter::CosmicSplittingResolutionFilter(const edm::Para
     simVertexToken ( consumes<std::vector<SimVertex >>(edm::InputTag("g4SimHits"))),
     trackingParticleToken ( consumes<std::vector<TrackingParticle >>(edm::InputTag("mix", "MergedTrackTruth"))),
     simHitTPAssocToken ( consumes<SimHitTPAssociationProducer::SimHitTPAssociationList >(edm::InputTag("simHitTPAssocProducer"))),
+    l1particlesToken ( consumes<std::vector<l1extra::L1MuonParticle>>(edm::InputTag("l1extraParticles"))),
     tmr_cut(cfg.getParameter<double>("tmr_cut")),
     tunep_pt_threshold(cfg.getParameter<double>("tunep_pt_threshold")),
     tunep_tune1(cfg.getParameter<double>("tunep_tune1")),
@@ -583,6 +587,27 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     }
   }
   
+  edm::Handle<std::vector<l1extra::L1MuonParticle>> l1particles;
+  event.getByToken(l1particlesToken, l1particles);
+
+  for (int il1p = 0; il1p < int(l1particles->size()); il1p++) {
+    if (il1p > 3)
+      break;
+    nt->l1_pt[il1p] = (l1particles->at(il1p)).pt();
+    nt->l1_eta[il1p] = l1particles->at(il1p).eta();
+    nt->l1_phi[il1p] = l1particles->at(il1p).phi();
+    nt->l1_charge[il1p] = l1particles->at(il1p).charge();
+
+    const L1MuGMTCand & gmt = l1particles->at(il1p).gmtMuonCand();
+    nt->l1_quality[il1p] = gmt.quality();
+    nt->l1_bx[il1p] = gmt.bx();
+    nt->l1_isol[il1p] = gmt.isol();
+
+    const L1MuGMTExtendedCand & extGmt = l1particles->at(il1p).gmtMuonCand();
+    nt->l1_isFwd[il1p] = extGmt.isFwd();
+    nt->l1_isRPC[il1p] = extGmt.isRPC();
+  }
+  
   edm::Handle<reco::MuonCollection> split_muons;
   event.getByToken(split_muon_label, split_muons);
 
@@ -681,8 +706,10 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   const reco::Muon* global_muons[2];
   for (reco::MuonCollection::const_iterator mu = split_muons->begin(); mu != split_muons->end(); ++mu) {
     if (mu->isGlobalMuon()) {
-      if (num_global_muons < 2)
+      if (num_global_muons < 2) {
 	global_muons[num_global_muons] = &*mu;
+	nt->muon_stations[num_global_muons] = mu->numberOfMatchedStations();
+      }
       ++num_global_muons;
     }
   }

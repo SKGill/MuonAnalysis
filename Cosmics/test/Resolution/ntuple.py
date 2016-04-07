@@ -90,8 +90,8 @@ options = parser.parse_args()
 ################################################################################
 
 # Hardcoded is-mc
-#options.is_mc = True
-#options.alca_set = 'GlobalTag_MC'
+options.is_mc = True
+options.alca_set = 'GlobalTag_MC_ideal'
 
 # Finalize the options after including any overrides, and do some
 # basic checks of consistency.

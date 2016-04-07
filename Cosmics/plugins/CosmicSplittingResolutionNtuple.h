@@ -26,6 +26,7 @@ struct CosmicSplittingResolutionNtuple {
   typedef unsigned short ushort;
 
   unsigned id;
+  unsigned new_id;
 
   unsigned run;
   unsigned lumi;
@@ -100,6 +101,20 @@ struct CosmicSplittingResolutionNtuple {
   float mc_phi[n_tracks];
   float mc_dxy[n_tracks];
   float mc_dz[n_tracks];
+
+  // L1Particle quantities
+  float l1_pt[4];
+  float l1_eta[4];
+  float l1_phi[4];
+  short l1_charge[4];
+  unsigned int l1_quality[4];
+  int l1_bx[4];
+  bool l1_isol[4];
+  bool l1_isFwd[4];
+  bool l1_isRPC[4];
+
+  // Muon Stations
+  ushort muon_stations[n_track_pos];
 
   short  ref_charge;
   float  ref_chi2;

@@ -32,9 +32,10 @@ struct Loader {
   // Return a weight for the given dataset id (0 = data, 1-3 = MC with
   // p>10, p>100, and p>500).
   static double get_weight(unsigned id) {
-    return 1.;
-//     if (!use_weights) return 1.;
+    //return 1.;
+    //if (!use_weights) return 1.;
     static const double weights[4] = { 1., 1., 0.1375, 0.007983 };
+    //static const double weights[4] = { 1., 1., 0.025, 0.007983 }; // New weights for MC
     assert(id < 4);
     return weights[id];  
   }
@@ -47,7 +48,7 @@ struct Loader {
 	 bool use_unpropagated_values, // Whether to use the propagated values.
 	 bool flip_upper_charge) {     // Whether to flip the charge of the upper tracks.
 
-    weight = get_weight(nt->id);
+    weight = get_weight(nt->new_id);
 
     // Most of the time we straightforwardly take upper (j=0) and
     // lower (j=1) pairs.
@@ -443,6 +444,18 @@ struct Bin {
       if (debug) *debug << "failed: muon hits: " << nt->ref_muon_hits << " min: " << min_muon_hits << "\n";
       return false;
     }
+
+    // if (nt->ref_error_pt/nt->ref_pt > 0.3) {
+    //   if (debug) *debug << "failed: muon hits: " << nt->ref_muon_hits << " min: " << min_muon_hits << "\n";
+    //   return false;
+    // }
+
+    if (nt->muon_stations[0] < 2 || nt->muon_stations[1] < 2) {
+      if (debug) *debug << "failed: muon stations: " << nt->muon_stations[0] + nt->muon_stations[1] << " min: " << 2 << "\n";
+      return false;
+    }
+
+    
     
     return true;
   }
@@ -469,7 +482,7 @@ struct Bin {
     if (ref_ok) {
       const double ref_p = nt->ref_pt/sin(nt->ref_theta);
       h_ref_p_unweighted->Fill(ref_p);
-      const double w = Loader::get_weight(nt->id);
+      const double w = Loader::get_weight(nt->new_id);
       h_ref_p->Fill(ref_p, w);
       h_ref_pt->Fill(nt->ref_pt, w);
       h_ref_eta->Fill(-log(tan(nt->ref_theta / 2)), w);
@@ -591,6 +604,9 @@ private:
   // The list of good runs (no longer done at ntupling time, or to
   // force a subset after the fact).
   const std::vector<unsigned> force_run_list;
+  // The list of lumis (run, lumi pairs flattened) that are
+  // used only (optional, for e.g. making 1-1 comparisons).
+  const std::vector<unsigned> force_lumi_list;
   // The list of events (run, lumi, event 3-tuples flattened) that are
   // used only (optional, for e.g. making 1-1 comparisons).
   const std::vector<unsigned> force_event_list;
@@ -614,7 +630,7 @@ private:
   // ("error").
   TH1F* errors;
   enum error_code { error_none, error_bad_run, error_bfield, error_bad_event, error_tt25, error_wrong_sample, error_propagation, error_prop_mc,
-		    error_muon_hits, error_dpt, error_pixels, error_strips, error_dxy, error_dz, error_tpfms_station, error_dt, error_csc, error_tksta_dphi, error_shared_hits,
+		    error_muon_hits, error_dpt, error_pixels, error_strips, error_dxy, error_dz, error_tpfms_station, error_dt, error_csc, error_tmp, error_tksta_dphi, error_shared_hits,
 		    error_last };
 
   // Monitoring plots for track positions.
@@ -645,6 +661,9 @@ private:
   // Used by cut() to check whether the run is in the good run list.
   bool run_is_bad(unsigned run);
 
+  // Used by cut() to check whether the run and lumi are in the good run/lumi list.
+  bool lumi_is_bad(unsigned run, unsigned lumi);
+
   // Used by cut() for only allowing specific events.
   bool event_is_bad(unsigned run, unsigned lumi, unsigned event);
 
@@ -674,6 +693,7 @@ CosmicSplittingResolutionHistos::CosmicSplittingResolutionHistos(const edm::Para
     use_unpropagated_values(cfg.getParameter<bool>("use_unpropagated_values")),
     pp_reco_mode(cfg.getParameter<bool>("pp_reco_mode")),
     force_run_list(cfg.getParameter<std::vector<unsigned> >("force_run_list")),
+    force_lumi_list(cfg.getParameter<std::vector<unsigned> >("force_lumi_list")),
     force_event_list(cfg.getParameter<std::vector<unsigned> >("force_event_list")),
     require_tt25(cfg.getParameter<bool>("require_tt25")),
     require_not_tt25(cfg.getParameter<bool>("require_not_tt25")),
@@ -719,6 +739,7 @@ CosmicSplittingResolutionHistos::CosmicSplittingResolutionHistos(const edm::Para
   errors->GetXaxis()->SetBinLabel(1 + error_tpfms_station,       "tpfms_station");
   errors->GetXaxis()->SetBinLabel(1 + error_dt,                  "dt");
   errors->GetXaxis()->SetBinLabel(1 + error_csc,                 "csc");
+  errors->GetXaxis()->SetBinLabel(1 + error_tmp,                 "tmp");
   errors->GetXaxis()->SetBinLabel(1 + error_tksta_dphi,          "tksta_dphi");
   errors->GetXaxis()->SetBinLabel(1 + error_shared_hits,         "shared_hits");
 
@@ -794,6 +815,23 @@ bool CosmicSplittingResolutionHistos::run_is_bad(unsigned run) {
     return false;
 }
 
+bool CosmicSplittingResolutionHistos::lumi_is_bad(unsigned run, unsigned lumi) {
+  size_t n = force_lumi_list.size();
+  if (n > 0) {
+    assert(n % 2 == 0);
+    bool found = false;
+    for (size_t i = 0; i < n; i += 2) {
+      if (run == force_lumi_list[i] && lumi == force_lumi_list[i+1]) {
+	found = true;
+	break;
+      }
+    }
+    return not found;
+  }
+  else
+    return false;
+}
+
 bool CosmicSplittingResolutionHistos::event_is_bad(unsigned run, unsigned lumi, unsigned event) {
   // JMTBAD optimize
   size_t n = force_event_list.size();
@@ -819,6 +857,9 @@ CosmicSplittingResolutionHistos::error_code CosmicSplittingResolutionHistos::cut
   if (!is_mc && run_is_bad(nt->run))
     return error_bad_run;
 
+  if (!is_mc && lumi_is_bad(nt->run, nt->lumi))
+    return error_bad_run;
+
   if (nt->bzat0 < min_bfield)
     return error_bfield;
 
@@ -832,11 +873,11 @@ CosmicSplittingResolutionHistos::error_code CosmicSplittingResolutionHistos::cut
     return error_tt25;
 
   if (is_mc && check_for_wrong_sample) {
-    if (only_sample >= 0 && nt->id != unsigned(only_sample))
+    if (only_sample >= 0 && nt->new_id != unsigned(only_sample))
       return error_wrong_sample; // JMTBAD different error code
 
     double unprop_mc_p = nt->unprop_mc_pt/sin(nt->unprop_mc_theta);
-    if ((nt->id == mc_10 && unprop_mc_p > 100) || (nt->id == mc_100 && unprop_mc_p > 500))
+    if ((nt->new_id == mc_10 && unprop_mc_p > 100))// || (nt->new_id == mc_100 && unprop_mc_p > 500))
       return error_wrong_sample;
   }
 
@@ -943,6 +984,11 @@ CosmicSplittingResolutionHistos::error_code CosmicSplittingResolutionHistos::cut
     out << "Event failed selection: some track hit a CSC!\n";
     return error_csc;
   }
+
+  // if (!nt->hit_csc) {
+  //   out << "Event failed selection: some track hit a CSC!\n";
+  //   return error_tmp;
+  // }
 
   // Make sure the tracker-standalone matching went well. Do this by
   // checking delta phi between the two track fits.

@@ -28,6 +28,7 @@ void branch_it(TTree* tree, const char* name, void* addr, const char* fmt) {
 
 void write_to_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   branch_it(tree, "id", &nt->id, "id/i");
+  branch_it(tree, "new_id", &nt->new_id, "new_id/i");
   branch_it(tree, "run", &nt->run, "run/i");
   branch_it(tree, "lumi", &nt->lumi, "lumi/i");
   branch_it(tree, "event", &nt->event, "event/i");
@@ -87,6 +88,18 @@ void write_to_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   branch_it(tree, "mc_phi", nt->mc_phi, "mc_phi[%i]/F");
   branch_it(tree, "mc_dxy", nt->mc_dxy, "mc_dxy[%i]/F");
   branch_it(tree, "mc_dz", nt->mc_dz, "mc_dz[%i]/F");
+  // L1Particle quantities
+  branch_it(tree,"l1_pt", &nt->l1_pt,"l1_pt[4]/F");
+  branch_it(tree,"l1_eta", &nt->l1_eta,"l1_eta[4]/F");
+  branch_it(tree,"l1_phi", &nt->l1_phi,"l1_phi[4]/F");
+  branch_it(tree,"l1_charge", &nt->l1_charge,"l1_charge[4]/S");
+  branch_it(tree,"l1_quality", &nt->l1_quality,"l1_quality[4]/i");
+  branch_it(tree,"l1_bx", &nt->l1_bx,"l1_bx[4]/I");
+  branch_it(tree,"l1_isol", &nt->l1_isol,"l1_isol[4]/O");
+  branch_it(tree,"l1_isFwd", &nt->l1_isFwd,"l1_isFwd[4]/O");
+  branch_it(tree,"l1_isRPC", &nt->l1_isRPC,"l1_isRPC[4]/O");
+  // Muon stations
+  branch_it(tree, "muon_stations", &nt->muon_stations, "muon_stations[2]/s");
   branch_it(tree, "ref_charge", &nt->ref_charge, "ref_charge/S");
   branch_it(tree, "ref_chi2", &nt->ref_chi2, "ref_chi2/F");
   branch_it(tree, "ref_ndof", &nt->ref_ndof, "ref_ndof/s");
@@ -127,6 +140,7 @@ void write_to_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
 
 void read_from_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   tree->SetBranchAddress("id", &nt->id);
+  tree->SetBranchAddress("new_id", &nt->new_id);
   tree->SetBranchAddress("run", &nt->run);
   tree->SetBranchAddress("lumi", &nt->lumi);
   tree->SetBranchAddress("event", &nt->event);
@@ -186,6 +200,18 @@ void read_from_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   tree->SetBranchAddress("mc_phi", nt->mc_phi);
   tree->SetBranchAddress("mc_dxy", nt->mc_dxy);
   tree->SetBranchAddress("mc_dz", nt->mc_dz);
+  // L1Particle quantities
+  tree->SetBranchAddress("l1_pt", nt->l1_pt);
+  tree->SetBranchAddress("l1_eta", nt->l1_eta);
+  tree->SetBranchAddress("l1_phi", nt->l1_phi);
+  tree->SetBranchAddress("l1_charge", nt->l1_charge);
+  tree->SetBranchAddress("l1_quality", nt->l1_quality);
+  tree->SetBranchAddress("l1_bx", nt->l1_bx);
+  tree->SetBranchAddress("l1_isol", nt->l1_isol);
+  tree->SetBranchAddress("l1_isFwd", nt->l1_isFwd);
+  tree->SetBranchAddress("l1_isRPC", nt->l1_isRPC);
+  // Muon Stations
+  tree->SetBranchAddress("muon_stations", &nt->muon_stations);
   tree->SetBranchAddress("ref_charge", &nt->ref_charge);
   tree->SetBranchAddress("ref_chi2", &nt->ref_chi2);
   tree->SetBranchAddress("ref_ndof", &nt->ref_ndof);

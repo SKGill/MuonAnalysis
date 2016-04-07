@@ -20,4 +20,5 @@
   <use name="SimDataFormats/Track"/>
   <use name="SimDataFormats/Vertex"/>
   <use name="SimGeneral/TrackingAnalysis"/>
+  <use name="DataFormats/L1Trigger"/>
 </library>
