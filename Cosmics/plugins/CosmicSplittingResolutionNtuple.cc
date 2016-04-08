@@ -28,7 +28,7 @@ void branch_it(TTree* tree, const char* name, void* addr, const char* fmt) {
 
 void write_to_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   branch_it(tree, "id", &nt->id, "id/i");
-  branch_it(tree, "new_id", &nt->new_id, "new_id/i");
+  //branch_it(tree, "new_id", &nt->new_id, "new_id/i");
   branch_it(tree, "run", &nt->run, "run/i");
   branch_it(tree, "lumi", &nt->lumi, "lumi/i");
   branch_it(tree, "event", &nt->event, "event/i");
@@ -140,7 +140,7 @@ void write_to_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
 
 void read_from_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   tree->SetBranchAddress("id", &nt->id);
-  tree->SetBranchAddress("new_id", &nt->new_id);
+  //tree->SetBranchAddress("new_id", &nt->new_id);
   tree->SetBranchAddress("run", &nt->run);
   tree->SetBranchAddress("lumi", &nt->lumi);
   tree->SetBranchAddress("event", &nt->event);

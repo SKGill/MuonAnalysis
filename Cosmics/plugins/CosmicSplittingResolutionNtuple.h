@@ -26,7 +26,7 @@ struct CosmicSplittingResolutionNtuple {
   typedef unsigned short ushort;
 
   unsigned id;
-  unsigned new_id;
+  //unsigned new_id;
 
   unsigned run;
   unsigned lumi;

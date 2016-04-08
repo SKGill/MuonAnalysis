@@ -48,7 +48,7 @@ struct Loader {
 	 bool use_unpropagated_values, // Whether to use the propagated values.
 	 bool flip_upper_charge) {     // Whether to flip the charge of the upper tracks.
 
-    weight = get_weight(nt->new_id);
+    weight = get_weight(nt->id);
 
     // Most of the time we straightforwardly take upper (j=0) and
     // lower (j=1) pairs.
@@ -482,7 +482,7 @@ struct Bin {
     if (ref_ok) {
       const double ref_p = nt->ref_pt/sin(nt->ref_theta);
       h_ref_p_unweighted->Fill(ref_p);
-      const double w = Loader::get_weight(nt->new_id);
+      const double w = Loader::get_weight(nt->id);
       h_ref_p->Fill(ref_p, w);
       h_ref_pt->Fill(nt->ref_pt, w);
       h_ref_eta->Fill(-log(tan(nt->ref_theta / 2)), w);
@@ -873,11 +873,11 @@ CosmicSplittingResolutionHistos::error_code CosmicSplittingResolutionHistos::cut
     return error_tt25;
 
   if (is_mc && check_for_wrong_sample) {
-    if (only_sample >= 0 && nt->new_id != unsigned(only_sample))
+    if (only_sample >= 0 && nt->id != unsigned(only_sample))
       return error_wrong_sample; // JMTBAD different error code
 
     double unprop_mc_p = nt->unprop_mc_pt/sin(nt->unprop_mc_theta);
-    if ((nt->new_id == mc_10 && unprop_mc_p > 100))// || (nt->new_id == mc_100 && unprop_mc_p > 500))
+    if ((nt->id == mc_10 && unprop_mc_p > 100))// || (nt->new_id == mc_100 && unprop_mc_p > 500))
       return error_wrong_sample;
   }
 
