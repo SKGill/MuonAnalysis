@@ -90,8 +90,8 @@ options = parser.parse_args()
 ################################################################################
 
 # Hardcoded is-mc
-options.is_mc = True
-options.alca_set = 'GlobalTag_MC_ideal'
+#options.is_mc = True
+#options.alca_set = 'GlobalTag_MC_ideal'
 
 # Finalize the options after including any overrides, and do some
 # basic checks of consistency.
@@ -312,7 +312,6 @@ else:
 
 process.load('L1Trigger.Configuration.L1Extra_cff')
 if options.is_mc:
-    process.load('Configuration.StandardSequences.SimL1Emulator_cff')
     process.load('Configuration.StandardSequences.RawToDigi_cff')
     process.load("SimGeneral.MixingModule.mixNoPU_cfi")
     process.load("SimGeneral.MixingModule.trackingTruthProducerSelection_cfi")
@@ -645,11 +644,9 @@ for reco_kind in label_names.keys():
     # Run just local cosmic reco and cosmic muon reco, then run our
     # refits.
     if options.is_mc:
-        sobj = process.mix * process.simHitTPAssocProducer * process.RawToDigi * process.L1Extra * process.SimL1Emulator * reco_frag * refits
+        sobj = process.mix * process.simHitTPAssocProducer * process.RawToDigi * reco_frag * refits
     else:
-        sobj = process.RawToDigi * process.L1Extra * reco_frag * refits
-    #if options.is_mc:
-    #    sobj = process.mix * process.mergedtruth * sobj
+        sobj = process.RawToDigi * reco_frag * refits
     myrecocosmics = kindly_process('myrecocosmics', cms.Sequence(sobj))
 
     # Run the ntuple maker. See its code for documentation of the
