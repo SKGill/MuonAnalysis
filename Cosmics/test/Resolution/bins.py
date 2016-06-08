@@ -7,7 +7,7 @@ class Bin:
     abscissa = None
     min_pt  = 0.
     max_pt  = 4000.
-    min_eta = 0.
+    min_eta = -2.5
     max_eta = 2.5
     min_phi = -4.
     max_phi = 4.
@@ -79,7 +79,21 @@ def make_bins(bin_by, bin_extra=None):
             #Bin('pT12502000',   abscissa=1500., min_pt=1250.,  max_pt=2000.,   diff_scales=(500., 0.0025, 0.005, 0.002, 0.05, 0.07),   res_scales=(0.75, 0.75, 0.005, 0.005, 2., 2.),   pull_scales=(10., 10., 10., 10., 5.,  5. )),
             #Bin('pT20003000',   abscissa=2500., min_pt=2000.,  max_pt=3000.,   diff_scales=(500., 0.0025, 0.005, 0.002, 0.05, 0.07),   res_scales=(0.75, 0.75, 0.005, 0.005, 2., 2.),   pull_scales=(10., 10., 10., 10., 5.,  5. )),
         ]
+        '''
+        for x in xrange(0,12):
+            string = 'pT'+str(30*x)+str(30*(x+1))
+            bins += [ Bin(string,   abscissa=30.*x + 15, min_pt=30.*x, max_pt=30.*(x+1), diff_scales=( 25., 0.0025, 0.01,  0.002, 0.05, 0.1),   res_scales=(0.15, 0.15, 0.005, 0.005, 2., 2.),   pull_scales=( 5.,  5.,  5.,  5., 5.,  5. ))]
+            
+        for x in xrange(0,4):
+            string = 'pT'+str(60*x + 360)+str(60*(x+1) + 360)
+            bins += [ Bin(string,   abscissa=60.*x + 30 + 360, min_pt=60.*x + 360, max_pt=60.*(x+1) + 360, diff_scales=( 25., 0.0025, 0.01,  0.002, 0.05, 0.1),   res_scales=(0.25, 0.25, 0.005, 0.005, 2., 2.),   pull_scales=( 5.,  5.,  5.,  5., 5.,  5. ))]
+            
+        for x in xrange(0,4):
+            string = 'pT'+str(100*x + 600)+str(100*(x+1) + 600)
+            bins += [ Bin(string,   abscissa=100.*x + 50 + 600, min_pt=100.*x + 600, max_pt=100.*(x+1) + 600, diff_scales=( 25., 0.0025, 0.01,  0.002, 0.05, 0.1),   res_scales=(0.5, 0.5, 0.005, 0.005, 2., 2.),   pull_scales=( 5.,  5.,  5.,  5., 5.,  5. ))]
 
+        bins += [  Bin('pT10001500',      abscissa=1250, min_pt=1000, max_pt=1500, diff_scales=(  3., 0.005,  0.003, 0.003, 0.05, 0.1 ),   res_scales=(0.5,  0.1,  0.005, 0.005, 2., 2.),   pull_scales=( 5.,  5.,  5.,  5., 3.5, 3.5))]
+        '''
         bins += [
             Bin('pTall',      use_by_bin=False,                             diff_scales=(  3., 0.005,  0.003, 0.003, 0.05, 0.1 ),   res_scales=(0.1,  0.1,  0.005, 0.005, 2., 2.),   pull_scales=( 5.,  5.,  5.,  5., 3.5, 3.5)),
             Bin('pTabove500', use_by_bin=False, min_pt=500., max_pt=1e99,   diff_scales=(500., 0.0025, 0.005, 0.002, 0.05, 0.07),   res_scales=(2.0,  2.0,  0.005, 0.005, 2., 2.),   pull_scales=(10., 10., 10., 10., 5.,  5. )),

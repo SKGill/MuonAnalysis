@@ -89,6 +89,7 @@ void write_to_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   branch_it(tree, "mc_dxy", nt->mc_dxy, "mc_dxy[%i]/F");
   branch_it(tree, "mc_dz", nt->mc_dz, "mc_dz[%i]/F");
   // L1Particle quantities
+  branch_it(tree,"nl1", &nt->nl1,"nl1/s");
   branch_it(tree,"l1_pt", &nt->l1_pt,"l1_pt[4]/F");
   branch_it(tree,"l1_eta", &nt->l1_eta,"l1_eta[4]/F");
   branch_it(tree,"l1_phi", &nt->l1_phi,"l1_phi[4]/F");
@@ -201,6 +202,7 @@ void read_from_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   tree->SetBranchAddress("mc_dxy", nt->mc_dxy);
   tree->SetBranchAddress("mc_dz", nt->mc_dz);
   // L1Particle quantities
+  tree->SetBranchAddress("nl1", &nt->nl1);
   tree->SetBranchAddress("l1_pt", nt->l1_pt);
   tree->SetBranchAddress("l1_eta", nt->l1_eta);
   tree->SetBranchAddress("l1_phi", nt->l1_phi);
@@ -210,7 +212,7 @@ void read_from_tree(TTree* tree, CosmicSplittingResolutionNtuple* nt) {
   tree->SetBranchAddress("l1_isol", nt->l1_isol);
   tree->SetBranchAddress("l1_isFwd", nt->l1_isFwd);
   tree->SetBranchAddress("l1_isRPC", nt->l1_isRPC);
-  // Muon Stations
+  // // Muon Stations
   tree->SetBranchAddress("muon_stations", &nt->muon_stations);
   tree->SetBranchAddress("ref_charge", &nt->ref_charge);
   tree->SetBranchAddress("ref_chi2", &nt->ref_chi2);

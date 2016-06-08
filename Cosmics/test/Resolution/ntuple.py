@@ -90,8 +90,10 @@ options = parser.parse_args()
 ################################################################################
 
 # Hardcoded is-mc
-#options.is_mc = True
+options.is_mc = True
 #options.alca_set = 'GlobalTag_MC_ideal'
+options.alca_set = 'GlobalTag_MC'
+options.dataset_id = 2
 
 # Finalize the options after including any overrides, and do some
 # basic checks of consistency.
@@ -267,10 +269,12 @@ process.source.inputCommands.extend([
     'keep *_g4SimHits_*_*',
     'keep edmHepMCProduct_*_*_*',
     'keep *_mix_*_*',
-    'keep *_randomEngineStateProducer_*_*'
+    'keep *_randomEngineStateProducer_*_*',
+    'keep *_l1extraParticles_*_*'
     ])
 process.source.dropDescendantsOfDroppedBranches = cms.untracked.bool(False)
 
+#process.source.eventsToProcess = cms.untracked.VEventRange(cms.untracked.EventRange('1:5451:354412512','1:5451:354412512','1:5457:354858196','1:10379:674891492','1:10384:675203132','1:10387:675401112'))
 if options.run_events:
     process.source.eventsToProcess = cms.untracked.VEventRange(*[cms.untracked.EventRange(x[0],x[-1],x[0],x[-1]) for x in options.run_events])
 

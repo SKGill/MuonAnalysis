@@ -103,6 +103,7 @@ struct CosmicSplittingResolutionNtuple {
   float mc_dz[n_tracks];
 
   // L1Particle quantities
+  ushort nl1;
   float l1_pt[4];
   float l1_eta[4];
   float l1_phi[4];

@@ -590,6 +590,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   edm::Handle<std::vector<l1extra::L1MuonParticle>> l1particles;
   event.getByToken(l1particlesToken, l1particles);
 
+  nt->nl1 = l1particles->size();
   for (int il1p = 0; il1p < int(l1particles->size()); il1p++) {
     if (il1p > 3)
       break;
