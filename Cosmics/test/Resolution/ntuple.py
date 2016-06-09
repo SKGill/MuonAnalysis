@@ -90,10 +90,10 @@ options = parser.parse_args()
 ################################################################################
 
 # Hardcoded is-mc
-options.is_mc = True
+#options.is_mc = True
 #options.alca_set = 'GlobalTag_MC_ideal'
-options.alca_set = 'GlobalTag_MC'
-options.dataset_id = 2
+#options.alca_set = 'GlobalTag_MC'
+#options.dataset_id = 2
 
 # Finalize the options after including any overrides, and do some
 # basic checks of consistency.
@@ -250,10 +250,11 @@ else:
 ################################################################################
 
 import FWCore.ParameterSet.Config as cms
+from Configuration.StandardSequences.Eras import eras
 
 # Build the process, configured by the above options.
 proc_name = 'CosmicSplittingResolution'
-process = cms.Process(proc_name)
+process = cms.Process(proc_name,eras.Run2_2016)
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.max_events))
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring(*options.files))
 
@@ -315,6 +316,7 @@ else:
         process.standAloneMuons.STATrajBuilderParameters.BWFilterParameters.MuonTrajectoryUpdatorParameters.Granularity = 0
 
 process.load('L1Trigger.Configuration.L1Extra_cff')
+
 if options.is_mc:
     process.load('Configuration.StandardSequences.RawToDigi_cff')
     process.load("SimGeneral.MixingModule.mixNoPU_cfi")
@@ -330,7 +332,7 @@ else:
 
 # JMTBAD won't hit some things because we don't define the same-named sequences/paths but these things don't look needed here
 from SLHCUpgradeSimulations.Configuration.postLS1Customs import customisePostLS1
-process = customisePostLS1(process)
+#process = customisePostLS1(process)
 
 if options.edm_output:
     process.out = cms.OutputModule('PoolOutputModule', fileName = cms.untracked.string('edm.root'))
@@ -751,7 +753,7 @@ if options.dumps and options.foo:
             'PPstmPicky1',
             ])
     process.UTrecoonlypath.replace(process.UTpickedTracks, process.EventDump * process.UTpickedTracks)
-    #process.Tracer = cms.Service('Tracer')
+    process.Tracer = cms.Service('Tracer')
 
 # Done configuring the process.
     

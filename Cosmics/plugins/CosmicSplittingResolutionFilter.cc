@@ -478,7 +478,7 @@ CosmicSplittingResolutionFilter::CosmicSplittingResolutionFilter(const edm::Para
     simVertexToken ( consumes<std::vector<SimVertex >>(edm::InputTag("g4SimHits"))),
     trackingParticleToken ( consumes<std::vector<TrackingParticle >>(edm::InputTag("mix", "MergedTrackTruth"))),
     simHitTPAssocToken ( consumes<SimHitTPAssociationProducer::SimHitTPAssociationList >(edm::InputTag("simHitTPAssocProducer"))),
-    l1particlesToken ( consumes<std::vector<l1extra::L1MuonParticle>>(edm::InputTag("l1extraParticles"))),
+    //l1particlesToken ( consumes<std::vector<l1extra::L1MuonParticle>>(edm::InputTag("l1extraParticles"))),
     tmr_cut(cfg.getParameter<double>("tmr_cut")),
     tunep_pt_threshold(cfg.getParameter<double>("tunep_pt_threshold")),
     tunep_tune1(cfg.getParameter<double>("tunep_tune1")),
@@ -586,7 +586,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
       }
     }
   }
-  
+  /*
   edm::Handle<std::vector<l1extra::L1MuonParticle>> l1particles;
   event.getByToken(l1particlesToken, l1particles);
 
@@ -608,7 +608,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
     nt->l1_isFwd[il1p] = extGmt.isFwd();
     nt->l1_isRPC[il1p] = extGmt.isRPC();
   }
-  
+  */
   edm::Handle<reco::MuonCollection> split_muons;
   event.getByToken(split_muon_label, split_muons);
 
