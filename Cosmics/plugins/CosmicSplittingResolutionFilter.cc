@@ -545,7 +545,7 @@ bool CosmicSplittingResolutionFilter::filter(edm::Event& event, const edm::Event
   // special trigger, technical #25. Store whether this fired.
   edm::Handle<L1GlobalTriggerReadoutRecord> gtReadoutRecord;
   event.getByToken(digisToken, gtReadoutRecord);
-  nt->tt25 = gtReadoutRecord->technicalTriggerWord().at(25);
+  //nt->tt25 = gtReadoutRecord->technicalTriggerWord().at(25);
   // JMTBAD need to add some other trigger selection, especially for MC.
 
   // In at least a few runs the magnetic field value in the database
