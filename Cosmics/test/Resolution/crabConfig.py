@@ -3,7 +3,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 config.section_("General")
-config.General.requestName   = 'Muon_Resolution_Ntuple_FR_R_74_V15B_tuneR_conservative'
+config.General.requestName   = 'Run2017_MC_p100'
 config.General.transferLogs = True
 config.General.workArea = 'crab'
 config.section_("JobType")
@@ -13,20 +13,22 @@ config.JobType.psetName    = 'ntuple.py'
 config.JobType.inputFiles = ['startup-v1_DESRUN2_74_V4_ape-candidate1.db','startup-v1_DESRUN2_74_V4_ape-candidate2.db']
 
 config.section_("Data")
-#config.Data.inputDataset = '/Cosmics/Commissioning2015-CosmicSP-04Jun2015-v1/RAW-RECO'
+config.Data.inputDataset = '/SPLooseMuCosmic_38T_p500/RunIISummer17CosmicDR-94X_mc2017cosmics_realistic_deco_v3-v1/GEN-SIM-RECO'
+# '/SPLooseMuCosmic_38T_p100-500/RunIISummer17CosmicDR-94X_mc2017cosmics_realistic_deco_v3-v1/GEN-SIM-RECO'
+#'/SPLooseMuCosmic_38T_p500/RunIISummer17CosmicDR-94X_mc2017cosmics_realistic_deco_v3-v1/GEN-SIM-RECO'
 #config.Data.allowNonValidInputDataset = True
-f = open('cosmic_files.txt')
-flist = []
-for line in f:
-    flist.append(line)
-config.Data.userInputFiles = flist
+#f = open('cosmic_files.txt')
+#flist = []
+#for line in f:
+ #   flist.append(line)
+#config.Data.userInputFiles = flist
 config.Data.splitting = 'FileBased'
 config.Data.unitsPerJob = 1
 #config.Data.publication = True
 # This string is used to construct the output dataset name
 #config.Data.publishDataName = 'CRAB3-tutorial'
-config.Data.outLFNDirBase = '/store/user/jchavesb/Muon_Resolution_Ntuple_FR_R_74_V15B_tuneR_conservative'
-config.Data.ignoreLocality = True
+config.Data.outLFNDirBase = '/store/group/phys_smp/skaur/MC_2017'
+#config.Data.ignoreLocality = True
 
 # These values only make sense for processing data
 #    Select input data based on a lumi mask
@@ -36,5 +38,6 @@ config.Data.ignoreLocality = True
 
 config.section_("Site")
 # Where the output files will be transmitted to
-config.Site.storageSite = 'T3_US_FNALLPC'
-config.Site.whitelist = ['T2_US*']
+config.Site.storageSite = 'T2_CH_CERN'
+
+#config.Site.whitelist = ['T2_US*']
