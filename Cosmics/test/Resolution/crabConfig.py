@@ -10,7 +10,7 @@ config.section_("JobType")
 config.JobType.pluginName  = 'Analysis'
 # Name of the CMSSW configuration file
 config.JobType.psetName    = 'ntuple.py'
-config.JobType.inputFiles = ['startup-v1_DESRUN2_74_V4_ape-candidate1.db','startup-v1_DESRUN2_74_V4_ape-candidate2.db']
+#config.JobType.inputFiles = ['startup-v1_DESRUN2_74_V4_ape-candidate1.db','startup-v1_DESRUN2_74_V4_ape-candidate2.db']
 
 config.section_("Data")
 config.Data.inputDataset = '/SPLooseMuCosmic_38T_p500/RunIISummer17CosmicDR-94X_mc2017cosmics_realistic_deco_v3-v1/GEN-SIM-RECO'
